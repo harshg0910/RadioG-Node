@@ -13,6 +13,7 @@ import rice.p2p.commonapi.NodeHandle;
 
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -21,15 +22,23 @@ import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Vector;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 import javax.swing.JLabel;
-import javax.swing.JTextPane;
 import javax.swing.JTextArea;
 import javax.swing.JRadioButton;
 
 import java.awt.Color;
 
 import javax.swing.UIManager;
+
+import logging.LoggingExample;
+import logging.MyFormatter;
+import logging.MyHandler;
 
 public class Radio {
 
@@ -47,6 +56,8 @@ public class Radio {
 	private static final JTextField lblAudioPath = new JTextField(
 			"C:\\Users\\harsh\\Desktop\\abc.mp3");
 	private static JTextField textMyIP;
+	private Handler fileHandler;
+	public static Logger logger = Logger.getLogger(LoggingExample.class.getName());
 
 	/**
 	 * Launch the application.
@@ -97,6 +108,8 @@ public class Radio {
 		final JRadioButton rdbtnBootstrapNode = new JRadioButton(
 				"Bootstrap Node");
 
+		
+		
 		// Finding bootstrap node from url
 
 		try {
@@ -108,6 +121,7 @@ public class Radio {
 			txtBootstrapPort.setText(boot[1]);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
+			logger.warning("Cannot fetch bootstap server");
 			lblError.setText("Cannot fetch bootstap server.\nPlease enter manually");
 		}
 
@@ -115,6 +129,27 @@ public class Radio {
 		connect.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
+				
+				//Logging config
+				try {
+					LogManager.getLogManager().readConfiguration(
+							new FileInputStream("mylogging.properties"));
+				} catch (SecurityException | IOException e1) {
+					e1.printStackTrace();
+				}
+				logger.setLevel(Level.FINE);
+				// adding custom handler
+				logger.addHandler(new MyHandler());
+				try {
+					// FileHandler file name with max size and number of log files limit
+					fileHandler = new FileHandler("logger"+txtBindPort.getText()+".html");
+					fileHandler.setFormatter(new MyFormatter());
+					// fileHandler.setFilter(new MyFilter());
+					logger.addHandler(fileHandler);
+				} catch (SecurityException | IOException e) {
+					e.printStackTrace();
+				}
+				
 				// Loads pastry settings
 				System.out.println("Starting the system...");
 				Environment env = new Environment("freepastry");
@@ -135,14 +170,16 @@ public class Radio {
 
 					if (!rdbtnBootstrapNode.isSelected()) {
 						// System.out.println("Type bootstrap port : ");
+						logger.log(Level.FINE,"Started as client node");
 						PORT = Integer.parseInt(txtBootstrapPort.getText());
+						logger.config("Bootstrap IP "+input);
+						logger.config("Bootstrap port "+PORT);
 						address = new InetSocketAddress(InetAddress
 								.getByName(input), PORT);
 					} else {
-
-//						InetAddress localhost = InetAddress.getLocalHost();
+						logger.log(Level.FINE,"Started as bootstrapped node");
 						InetAddress localhost = InetAddress.getByName(Radio.getMyIP());
-
+						
 						if (localhost.isLoopbackAddress()) {
 							Socket s = new Socket("202.141.80.14", 80);
 							localhost = s.getLocalAddress();
@@ -150,6 +187,8 @@ public class Radio {
 									+ s.getLocalAddress().getHostAddress());
 							s.close();
 						}
+						logger.config("Bootstrap IP "+localhost);
+						logger.config("Bootstrap port "+bindPort);
 						address = new InetSocketAddress(localhost
 								.getHostAddress(), bindPort);
 						isBoostrapNode = true;
@@ -160,6 +199,7 @@ public class Radio {
 					connect.setEnabled(false);
 
 				} catch (Exception e) {
+					logger.log(Level.SEVERE,e.getMessage());
 					System.out.println(e.getMessage());
 				}
 
@@ -280,31 +320,6 @@ public class Radio {
 		});
 		btnNewButton.setBounds(121, 44, 112, 23);
 		frmRadiog.getContentPane().add(btnNewButton);
-
-		JButton btnRefresh = new JButton("Refresh");
-		btnRefresh.setEnabled(false);
-		btnRefresh.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-
-				System.out.println("Refreshing....");
-				RadioApp.getRadioApp().hasStream = false;
-				Player.stopServer();
-				Player.stopListening();
-				RadioNode.getRadioNode().updateLeafSet();
-
-				try {
-					System.out.println("Searching for new server...");
-					RadioApp.getRadioApp().ServerFound = false;
-					RadioApp.getRadioApp().setServerAlive(false);
-					RadioApp.getRadioApp().sendStreamRequest();
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					Radio.setError(e.getMessage());
-				}
-			}
-		});
-		btnRefresh.setBounds(338, 173, 89, 23);
-		frmRadiog.getContentPane().add(btnRefresh);
 		
 		textMyIP = new JTextField();
 		textMyIP.setBounds(338, 148, 123, 20);

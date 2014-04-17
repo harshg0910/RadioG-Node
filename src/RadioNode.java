@@ -2,7 +2,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-
+import java.util.logging.Level;
+import rice.environment.time.simple.SimpleTimeSource;
 import rice.environment.Environment;
 import rice.p2p.commonapi.NodeHandle;
 import rice.pastry.NodeIdFactory;
@@ -21,6 +22,8 @@ public class RadioNode {
 	LeafSet leafSet;
 	public static boolean isBootStrapeNode = false;
 	private static rice.p2p.commonapi.NodeHandle nodeHandle;
+	public static long upTime = 0;
+	public static SimpleTimeSource sts = new SimpleTimeSource();;
 
 	public static RadioNode getRadioNode() {
 		if (radioNode != null) {
@@ -55,7 +58,6 @@ public class RadioNode {
 		node = factory.newNode();
 
 		nodeHandle = node.getLocalNodeHandle();
-		// construct a new MyApp
 		node.boot(bootaddress);
 
 		// the node may require sending several messages to fully boot into the
@@ -66,29 +68,35 @@ public class RadioNode {
 				node.wait(500);
 				// abort if can't join
 				if (node.joinFailed()) {
+					Radio.logger.log(Level.SEVERE,node.joinFailedReason().toString());
 					throw new IOException(
 							"Could not join the FreePastry ring.  Reason:"
 									+ node.joinFailedReason());
 				}
 			}
 		}
-
+		Radio.logger.log(Level.INFO,"Node joined ring at " +upTime);
 		System.out.println("Finished creating new node " + node);
 		updateLeafSet();
-		System.out.println("Creating app");
 		bindport = getBindPort(nodeHandle);
+		Radio.logger.log(Level.CONFIG,"Node_Handle "+ nodeHandle);
 		Radio.settxtBindPort(String.valueOf(bindport));
 		app = new RadioApp(node, bindport + 1, bindport);
+		Radio.logger.log(Level.INFO, "Livenes Check is up.");
 		app.startLivenessCheck();
 		if (isBoostrapNode) {
 			if (Radio.getAudioFilepath() != "Filepath") {
 				app.setStream(Radio.getAudioFilepath());
 				Radio.setError("Bootstrapping port " + bindport);
 			} else
+			{
 				Radio.setError("Please choose an audio file");
+			}
 		}
-
-		app.sendStreamRequest();
+		if(!isBoostrapNode){
+			Radio.logger.log(Level.INFO, "Sendding stream request");
+			app.sendStreamRequest();
+		}
 	}
 
 	// get bind port from the node handle
@@ -111,4 +119,7 @@ public class RadioNode {
 		return nodeHandle;
 	}
 	
+	public static long getUptime(){
+		return upTime;
+	}
 }

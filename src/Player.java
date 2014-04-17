@@ -1,3 +1,5 @@
+import java.util.logging.Level;
+
 import uk.co.caprica.vlcj.component.AudioMediaPlayerComponent;
 import uk.co.caprica.vlcj.player.MediaPlayer;
 
@@ -5,7 +7,6 @@ public class Player {
 
 	private static MediaPlayer mediaPlayer = null;
 	private static MediaPlayer Streamer = null;
-	private static boolean isPlaying = false;
 
 	private static String formatMmshStream(String serverAddress, int serverPort) {
 		StringBuilder sb = new StringBuilder(120);
@@ -31,8 +32,13 @@ public class Player {
 			Streamer = mediaPlayerComponent.getMediaPlayer();
 		}
 		if (Streamer.playMedia(Input, options)) {
-			System.out.println("Streaming Started");
+			RadioNode.getRadioNode();
+			RadioApp.streamStartedAt = RadioNode.sts.currentTimeMillis();
+			Radio.logger.log(Level.INFO,"Stream Started at " + RadioApp.streamStartedAt);
+			Radio.logger.log(Level.INFO,"Startup delay " + (RadioApp.streamStartedAt - RadioNode.getUptime()) + "ms");
+			System.out.println("Streaming Started at "+RadioApp.streamStartedAt);
 		} else {
+			Radio.logger.log(Level.SEVERE,"Error in creating player");
 			System.out.println("Error in creating player");
 		}
 	}

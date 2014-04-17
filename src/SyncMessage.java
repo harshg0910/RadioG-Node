@@ -12,8 +12,7 @@ public class SyncMessage implements Message{
 		STREAM_REQUEST,
 		STREAM_OFFER,
 		STREAM_ACCEPT,
-		STREAM_REJECT,
-		HEARTBEAT
+		STREAM_REJECT
 	}
 	
 	private Type type;
