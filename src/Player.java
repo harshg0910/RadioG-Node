@@ -2,10 +2,11 @@ import java.util.logging.Level;
 
 import uk.co.caprica.vlcj.component.AudioMediaPlayerComponent;
 import uk.co.caprica.vlcj.player.MediaPlayer;
+import uk.co.caprica.vlcj.player.MediaPlayerEventAdapter;
 
 public class Player {
 
-	private static MediaPlayer mediaPlayer = null;
+	public static MediaPlayer mediaPlayer = null;
 	private static MediaPlayer Streamer = null;
 
 	private static String formatMmshStream(String serverAddress, int serverPort) {
@@ -31,11 +32,14 @@ public class Player {
 		if (Streamer == null) {
 			Streamer = mediaPlayerComponent.getMediaPlayer();
 		}
+		else{
+			Streamer.stop();
+		}
 		if (Streamer.playMedia(Input, options)) {
 			RadioNode.getRadioNode();
 			RadioApp.streamStartedAt = RadioNode.sts.currentTimeMillis();
 			Radio.logger.log(Level.INFO,"Stream Started at " + RadioApp.streamStartedAt);
-			Radio.logger.log(Level.INFO,"Startup delay " + (RadioApp.streamStartedAt - RadioNode.getUptime()) + "ms");
+			Radio.logger.log(Level.INFO,"Startup delay " + (RadioApp.streamStartedAt - Radio.upTime) + "ms");
 			System.out.println("Streaming Started at "+RadioApp.streamStartedAt);
 		} else {
 			Radio.logger.log(Level.SEVERE,"Error in creating player");
@@ -72,12 +76,19 @@ public class Player {
 		AudioMediaPlayerComponent mediaPlayerComponent = new AudioMediaPlayerComponent();
 		if (mediaPlayer == null) {
 			mediaPlayer = mediaPlayerComponent.getMediaPlayer();
+//			mediaPlayer.addMediaPlayerEventListener(new MediaPlayerEventAdapter() {
+//		        @Override
+//		        public void error(MediaPlayer mediaPlayer) {
+//		            Radio.logger.log(Level.SEVERE,"media error: isplayable" + mediaPlayer.isPlayable() + " state "+ mediaPlayer.getMediaState());
+//		        };
+//		    });
 		}
 
 		if (!mediaPlayer.playMedia(src)) {
 			System.out.println("Error in starting");
 		} else {
 			System.out.println("VLC started");
+			
 		}
 	}
 
