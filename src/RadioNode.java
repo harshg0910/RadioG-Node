@@ -20,7 +20,7 @@ public class RadioNode {
 	RadioApp app;
 	Environment env;
 	LeafSet leafSet;
-	public static boolean isBootStrapeNode = false;
+	public static boolean isBootStrapNode = false;
 	private static rice.p2p.commonapi.NodeHandle nodeHandle;
 	public static SimpleTimeSource sts = new SimpleTimeSource();;
 
@@ -33,7 +33,7 @@ public class RadioNode {
 
 	public RadioNode(int bindport, InetSocketAddress bootaddress,
 			Environment env, boolean isBoostrapNode) throws Exception {
-		RadioNode.isBootStrapeNode = isBoostrapNode;
+		RadioNode.isBootStrapNode = isBoostrapNode;
 
 		radioNode = this;
 

@@ -12,13 +12,16 @@ public class SyncMessage implements Message{
 		STREAM_REQUEST,
 		STREAM_OFFER,
 		STREAM_ACCEPT,
-		STREAM_REJECT
+		STREAM_REJECT,
+		SEND_STREAM, // This will be sent by a node to bootstrap one to get nodehandle of available stream 
+		FREE_STREAM  // This will contain the nodehandle of the free stream
 	}
 	
 	private Type type;
 	private String IPAddress;
 	private int VLCPort;
 	private NodeHandle ServerHandle;
+	private short attempt;
 	
 	public int getVLCPort(){
 		return VLCPort;
@@ -58,5 +61,13 @@ public class SyncMessage implements Message{
 	
 	public NodeHandle getHandle(){
 		return ServerHandle;
+	}
+
+	public short getAttempt() {
+		return attempt;
+	}
+
+	public void setAttempt(short attempt) {
+		this.attempt = attempt;
 	}
 }

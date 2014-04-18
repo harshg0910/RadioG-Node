@@ -45,6 +45,7 @@ public class RadioApp implements Application {
 													//prevents from multiple concurrent search attempt
 	public static long streamStartedAt = 0;			//streaming start time
 	private String VLCServerStream = "";			//MRL of streaming server
+	public FreeStreamers freeStreamers;
 
 	private static Ancestors ancestors;				//Ancestors of the node in streaming tree
 	private long serverLatency = 0;					//server's latency
@@ -107,7 +108,7 @@ public class RadioApp implements Application {
 		}
 		
 		//initialize the ancestor of bootstrap node as nill
-		if(RadioNode.isBootStrapeNode){
+		if(RadioNode.isBootStrapNode){
 			ancestors.initAncestors(new Vector<NodeHandle>());
 		}
 		InetAddress localhost = InetAddress.getLocalHost();
@@ -226,6 +227,22 @@ public class RadioApp implements Application {
 					Radio.logger.log(Level.SEVERE, e.getMessage());
 					e.printStackTrace();
 				}
+			case SEND_STREAM:
+				if (RadioNode.isBootStrapNode) {
+					SyncMessage reply = new SyncMessage();
+					reply.setHandle(freeStreamers.getStreamer(((SyncMessage) msg).getAttempt()));
+					reply.setType(SyncMessage.Type.FREE_STREAM);
+					replyMessage(synMsg, reply);
+				}
+				break;
+			case FREE_STREAM:
+				/*
+				 *  @Sahu : 
+				 *  What to do with free node
+				 *  When to ask for SEND_STREAM message
+				 *  When the node has full and free slots
+				 */
+				break;
 			default:
 				break;
 			}
@@ -257,9 +274,19 @@ public class RadioApp implements Application {
 		if (joined) {
 			Radio.logger.log(Level.INFO, "Node Joined " + handle);
 			System.out.println("New node " + handle);
+
+			// Bootstrap node will maintain the details of all nodes
+			if (RadioNode.isBootStrapNode)
+				freeStreamers.addNode(handle);
+
 		} else {
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
+
+			// Bootstrap node will maintain the details of all nodes
+			if (RadioNode.isBootStrapNode)
+				freeStreamers.removeNode(handle);
+
 			if (handle == VLCStreamingServer) {
 				hasStream = false;
 				Player.stopServer();
@@ -274,7 +301,7 @@ public class RadioApp implements Application {
 					e.printStackTrace();
 				}
 			} else if (listeners.isClient(handle)) {
-				Radio.logger.log(Level.INFO, "Cleint left " + handle);
+				Radio.logger.log(Level.INFO, "Client left " + handle);
 				listeners.removeClient(handle);
 			}
 		}
@@ -284,7 +311,7 @@ public class RadioApp implements Application {
 	// also Make serverfound = false
 	public void sendStreamRequest() throws Exception {
 
-		if (!RadioNode.isBootStrapeNode && !ServerFound && !isAlreadySearching) {
+		if (!RadioNode.isBootStrapNode && !ServerFound && !isAlreadySearching) {
 			isAlreadySearching = true;
 
 			/*

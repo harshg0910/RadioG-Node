@@ -12,12 +12,12 @@ public class CheckLIveness extends Thread {
 				// if(!RadioNode.isBootStrapeNode &&
 				// !RadioApp.getRadioApp().checkServerLiveness() &&
 				// !RadioApp.getRadioApp().isAlreadySearching){
-				if (!RadioNode.isBootStrapeNode
+				if (!RadioNode.isBootStrapNode
 						&& !RadioApp.getRadioApp().isAlreadySearching
 						&& RadioApp.getRadioApp().isServerAlive()) {
 					System.out.println("Server found alive");
 					RadioApp.getRadioApp().setServerAlive(false);
-				} else if (!RadioNode.isBootStrapeNode
+				} else if (!RadioNode.isBootStrapNode
 						&& !RadioApp.getRadioApp().isAlreadySearching) {
 					System.out.println("Server dead");
 					RadioApp.getRadioApp().hasStream = false;
