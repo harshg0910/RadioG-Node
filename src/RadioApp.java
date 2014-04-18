@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Vector;
 import java.util.logging.Level;
 
 import rice.p2p.commonapi.Application;
@@ -23,40 +24,49 @@ import rice.pastry.PastryNode;
 
 public class RadioApp implements Application {
 
-	private static RadioApp radioApp = null;
-	protected Endpoint endpoint;
-	public boolean hasStream = false;
-	private String LocalIPAddress;
-	public static int MAX_LISTENER = 3;
-	private PastryNode node;
-	private static boolean isServerAlive = false;
-	private CheckLIveness livenessChecker;
+	private static RadioApp radioApp = null;		//singleton instance of RadioApp
+	protected Endpoint endpoint;					//Endpoint of this node in the network
+	public boolean hasStream = false;				//flag indicating the availibilty of the stream 
+	private String LocalIPAddress;					//local IP address
+	private PastryNode node;						//pastrynode instance of this node
+	private static boolean isServerAlive = false;	//flag to indicate server aliveness
+	private CheckLIveness livenessChecker;			
 	private Listeners listeners;
 	private Object lock = new Object();
-	/*Streaming Server Variables*/
-	private int VLCStreamingPort = 7456;
-	private static NodeHandle VLCStreamingServer;
-	private int bindport;
-//	private String vlcPath = "";
-	public static boolean ServerFound = false;
-	private int lastCheckedServer ;
-	public boolean isAlreadySearching = false;
-	public static long streamStartedAt = 0; 
 	
-	private String VLCServerStream = "";
+	/* Streaming Server Variables */
+	private int VLCStreamingPort = 7456;			//port at which VLC Server will listen
+	private static NodeHandle VLCStreamingServer;	//node handle of the streaming server
+	private int bindport;							//port at which application is bound							
+	
+	public static boolean ServerFound = false;		
+	private int lastCheckedServer;					//clock hand for the last checked server
+	public boolean isAlreadySearching = false;		//true if the node is already searching for a server
+													//prevents from multiple concurrent search attempt
+	public static long streamStartedAt = 0;			//streaming start time
+	private String VLCServerStream = "";			//MRL of streaming server
 
-	public static RadioApp getRadioApp(){
-		if(radioApp!=null){
+	private static Ancestors ancestors;				//Ancestors of the node in streaming tree
+	private long serverLatency = 0;					//server's latency
+
+	/*
+	 * Returns insance of RadioApp
+	 */
+	public static RadioApp getRadioApp() {
+		if (radioApp != null) {
 			return radioApp;
 		}
 		return null;
 	}
-	
+
+	/*
+	 * Start listening from the src and streaming simultaneously
+	 */
 	public void setStream(String src) {
 		hasStream = true;
 		Player.startVLCStreaming(LocalIPAddress, VLCStreamingPort, src);
-		Radio.logger.log(Level.CONFIG,"Receiving_Stream "+src);
-		Radio.logger.log(Level.CONFIG,"Streaming_Port " + VLCStreamingPort);
+		Radio.logger.log(Level.CONFIG, "Receiving_Stream " + src);
+		Radio.logger.log(Level.CONFIG, "Streaming_Port " + VLCStreamingPort);
 		System.out.println("Streaming at port " + VLCStreamingPort);
 		Player.startListen(src);
 	}
@@ -64,14 +74,17 @@ public class RadioApp implements Application {
 	public String getLocalIP() {
 		return LocalIPAddress;
 	}
-
-	public NodeHandle getStreamingServer(){
+	
+	/*
+	 * Returns node handle of the streaming server
+	 */
+	public NodeHandle getStreamingServer() {
 		return VLCStreamingServer;
 	}
-
+	
 	public RadioApp(PastryNode node, int VLCStreamingPort, int bindPort)
 			throws IOException {
-		
+
 		radioApp = this;
 		// We are only going to use one instance of this application on each
 		// PastryNode
@@ -79,17 +92,26 @@ public class RadioApp implements Application {
 		this.node = node;
 		this.VLCStreamingPort = VLCStreamingPort;
 		this.bindport = bindPort;
-		lastCheckedServer =  -RadioNode.getRadioNode().leafSet.ccwSize();
+		lastCheckedServer = -RadioNode.getRadioNode().leafSet.ccwSize();
 		// the rest of the initialization code could go here
 
 		// now we can receive messages
 		this.endpoint.register();
-
-		listeners = new Listeners();
-		livenessChecker = new CheckLIveness();
 		
+		//listener instance
+		listeners = new Listeners();
+		
+		livenessChecker = new CheckLIveness();
+		if (ancestors == null) {
+			ancestors = new Ancestors();
+		}
+		
+		//initialize the ancestor of bootstrap node as nill
+		if(RadioNode.isBootStrapeNode){
+			ancestors.initAncestors(new Vector<NodeHandle>());
+		}
 		InetAddress localhost = InetAddress.getLocalHost();
-		if(localhost.isLoopbackAddress()){
+		if (localhost.isLoopbackAddress()) {
 			Socket s;
 			s = new Socket("202.141.80.14", 80);
 			localhost = s.getLocalAddress();
@@ -97,16 +119,20 @@ public class RadioApp implements Application {
 			s.close();
 		}
 		LocalIPAddress = localhost.getHostAddress();
-	
+
 	}
 
-	public void startLivenessCheck(){
+	/*
+	 * Start liveness check for the servers
+	 */
+	public void startLivenessCheck() {
 		livenessChecker.startLivenessCheck();
 	}
 
 	@Override
 	public void deliver(Id id, Message msg) {
-		if(msg instanceof SyncMessage){
+		
+		if (msg instanceof SyncMessage) {
 			SyncMessage synMsg = (SyncMessage) msg;
 			System.out.println("Got message " + synMsg.getType());
 			switch (synMsg.getType()) {
@@ -116,6 +142,10 @@ public class RadioApp implements Application {
 						"Stream_Request from " + synMsg.getHandle());
 				if (hasStream
 						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER) {
+
+					/*
+					 * Prepare and send stream offer
+					 */
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
@@ -126,6 +156,10 @@ public class RadioApp implements Application {
 							"Offering_to " + synMsg.getHandle());
 					System.out.println("Offering Stream to " + synMsg.getIP());
 				} else {
+
+					/*
+					 * prepare and send stream rejection
+					 */
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
@@ -138,16 +172,20 @@ public class RadioApp implements Application {
 							.println("Rejecting request of " + synMsg.getIP());
 				}
 				break;
-	
+
 			case STREAM_OFFER:
 				if (!ServerFound) {
-	
+
 					VLCServerStream = "mmsh://" + synMsg.getIP() + ":"
-							+ synMsg.getVLCPort();
+							+ synMsg.getVLCPort(); // prepare streaming url
 					VLCStreamingServer = synMsg.getHandle();
 					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle()
 							.toString());
 					setStream(VLCServerStream);
+
+					/*
+					 * Prepare and send stream acceptance
+					 */
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
@@ -162,15 +200,23 @@ public class RadioApp implements Application {
 					checkDelay(VLCStreamingServer);
 				}
 				break;
-	
+
 			case STREAM_ACCEPT:
 				listeners.addClient(synMsg.getHandle());
 				Radio.logger.log(Level.INFO,
 						"Streaming to " + synMsg.getHandle());
 				System.out.println("-----------Streaming to "
 						+ synMsg.getHandle());
+
+				/*
+				 * Prepare and send ancestor list to the child
+				 */ 
+				Radio.logger.log(Level.INFO,"Sending ancestor list to" + synMsg.getHandle());
+				AncestorMessage ancMsg = new AncestorMessage(ancestors,
+						node.getLocalNodeHandle(), serverLatency);
+				replyMessage(synMsg, ancMsg);
 				break;
-				
+
 			case STREAM_REJECT:
 				Radio.logger.log(Level.INFO,
 						"Rejected by " + synMsg.getHandle());
@@ -185,6 +231,13 @@ public class RadioApp implements Application {
 			}
 		} else if (msg instanceof HeartBeat) {
 			setServerAlive(true);
+		}
+		else if (msg instanceof AncestorMessage){
+			Radio.logger.log(Level.INFO, "Ancestor List Received");
+			AncestorMessage ancMsg = (AncestorMessage)msg;
+			ancestors.initAncestors(ancMsg.getAncestorList());
+			ancestors.printAncestors();
+			serverLatency += ancMsg.getDelay();
 		}
 
 	}
@@ -201,17 +254,17 @@ public class RadioApp implements Application {
 
 	@Override
 	public void update(NodeHandle handle, boolean joined) {
-		if (joined){
-			Radio.logger.log(Level.INFO,"Node Joined " + handle);
+		if (joined) {
+			Radio.logger.log(Level.INFO, "Node Joined " + handle);
 			System.out.println("New node " + handle);
 		} else {
-			Radio.logger.log(Level.INFO,"Node Left " + handle);
+			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
-			if(handle == VLCStreamingServer){
+			if (handle == VLCStreamingServer) {
 				hasStream = false;
 				Player.stopServer();
 				Player.stopListening();
-				Radio.logger.log(Level.INFO,"Streaming Server Dead " + handle);
+				Radio.logger.log(Level.INFO, "Streaming Server Dead " + handle);
 				System.out.println("Steaming Server Left");
 				RadioNode.getRadioNode().updateLeafSet();
 				try {
@@ -221,17 +274,17 @@ public class RadioApp implements Application {
 					e.printStackTrace();
 				}
 			} else if (listeners.isClient(handle)) {
-				Radio.logger.log(Level.INFO,"Cleint left " + handle);
+				Radio.logger.log(Level.INFO, "Cleint left " + handle);
 				listeners.removeClient(handle);
 			}
 		}
 	}
-	
-	//Do call updateLeafSet before this function
+
+	// Do call updateLeafSet before this function
 	// also Make serverfound = false
 	public void sendStreamRequest() throws Exception {
-		
-		if(!RadioNode.isBootStrapeNode && !ServerFound && !isAlreadySearching){
+
+		if (!RadioNode.isBootStrapeNode && !ServerFound && !isAlreadySearching) {
 			isAlreadySearching = true;
 
 			/*
@@ -252,11 +305,11 @@ public class RadioApp implements Application {
 				msg.setHandle(endpoint.getLocalNodeHandle());
 				NodeHandle nh = RadioNode.getRadioNode().leafSet
 						.get(lastCheckedServer);
-				//use routing table
+				// use routing table
 				if (nh != null) {
-				Radio.logger.log(Level.INFO,"Sending Request to " + nh);
-				System.out.println("Sending request for stream to " + nh);
-				sendMessage(nh.getId(), msg);
+					Radio.logger.log(Level.INFO, "Sending Request to " + nh);
+					System.out.println("Sending request for stream to " + nh);
+					sendMessage(nh.getId(), msg);
 				}
 				lastCheckedServer++;
 				// select the item
@@ -265,12 +318,12 @@ public class RadioApp implements Application {
 				System.out
 						.println("Starting search from begining of the leafSet");
 			}
-			isAlreadySearching = false;	
-		}	
+			isAlreadySearching = false;
+		}
 	}
-	
-	public boolean checkServerLiveness(){
-		if(VLCStreamingServer!=null && endpoint.isAlive(VLCStreamingServer)){
+
+	public boolean checkServerLiveness() {
+		if (VLCStreamingServer != null && endpoint.isAlive(VLCStreamingServer)) {
 			return true;
 		}
 		return false;
@@ -283,19 +336,19 @@ public class RadioApp implements Application {
 	public String toString() {
 		return "End Point ID  " + endpoint.getId();
 	}
-	
-	public boolean isServerAlive(){
+
+	public boolean isServerAlive() {
 		return isServerAlive;
 	}
-	
-	public void setServerAlive(boolean val){
+
+	public void setServerAlive(boolean val) {
 		synchronized (lock) {
 			isServerAlive = val;
 		}
 	}
-	
-	public void checkDelay(NodeHandle handle){
-		
+
+	public void checkDelay(NodeHandle handle) {
+
 	}
 
 	public String getVLCServerStream() {

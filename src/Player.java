@@ -2,7 +2,6 @@ import java.util.logging.Level;
 
 import uk.co.caprica.vlcj.component.AudioMediaPlayerComponent;
 import uk.co.caprica.vlcj.player.MediaPlayer;
-import uk.co.caprica.vlcj.player.MediaPlayerEventAdapter;
 
 public class Player {
 

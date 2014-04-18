@@ -1,5 +1,3 @@
-import java.util.logging.Level;
-
 import rice.pastry.NodeHandle;
 import rice.pastry.routing.RouteSet;
 import uk.co.caprica.vlcj.binding.internal.libvlc_state_t;
@@ -39,31 +37,29 @@ public class CheckLIveness extends Thread {
 
 				}
 				if (Player.mediaPlayer != null) {
-					// Radio.logger.log(Level.SEVERE, "VLC Stream state: "
-					// + Player.mediaPlayer.getMediaState());
 					if (Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Ended
 							|| Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Error) {
-						// Radio.logger.log(Level.SEVERE, "hhhhhhhh");
+						// Radio.logger.log(Level.SEVERE, "Streaming stopped");
 						RadioApp.getRadioApp().setStream(
 								RadioApp.getRadioApp().getVLCServerStream());
 					}
 				}
 				// Listeners.getListener().update();
-				System.out.println("---------Routing Table---------------");
-				for (int i = 0; i < RadioNode.node.getRoutingTable().numRows(); i++) {
-					RouteSet rs[] = RadioNode.node.getRoutingTable().getRow(i);
-					System.out.println("---------Row "+ i +"---------------");
-					if (rs.length != 0) {
-						for (RouteSet r : rs) {
-							if (r != null)
-								System.out.println(r.toString());
-						}
-					}
-				}
-				System.out.println("---------Leaf Nodes---------------");
-				for(NodeHandle nh : RadioNode.node.getLeafSet()){
-					System.out.println(nh.toString());
-				}
+//				System.out.println("---------Routing Table---------------");
+//				for (int i = 0; i < RadioNode.node.getRoutingTable().numRows(); i++) {
+//					RouteSet rs[] = RadioNode.node.getRoutingTable().getRow(i);
+//					System.out.println("---------Row "+ i +"---------------");
+//					if (rs.length != 0) {
+//						for (RouteSet r : rs) {
+//							if (r != null)
+//								System.out.println(r.toString());
+//						}
+//					}
+//				}
+//				System.out.println("---------Leaf Nodes---------------");
+//				for(NodeHandle nh : RadioNode.node.getLeafSet()){
+//					System.out.println(nh.toString());
+//				}
 
 				Listeners.getListener().sendHeartBeat();
 

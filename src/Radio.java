@@ -30,7 +30,6 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import javax.swing.JLabel;
-import javax.swing.JTextPane;
 import javax.swing.JTextArea;
 import javax.swing.JRadioButton;
 
@@ -56,7 +55,7 @@ public class Radio {
 	private static String JREArch = "";
 	private static JLabel lblError = new JLabel("Message");
 	private static final JTextField lblAudioPath = new JTextField(
-			"C:\\Users\\harsh\\Desktop\\abc.mp3");
+			"C:\\Users\\Abhi\\Desktop\\abc.mp3");
 	private static JTextField textMyIP;
 	private Handler fileHandler;
 	public static Logger logger = Logger.getLogger(LoggingExample.class.getName());

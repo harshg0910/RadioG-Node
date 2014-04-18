@@ -1,6 +1,7 @@
 import rice.p2p.commonapi.Message;
 
 
+@SuppressWarnings("serial")
 public class PingPong implements Message{
 	
 	private int type;
