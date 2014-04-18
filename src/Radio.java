@@ -9,6 +9,7 @@ import javax.swing.SwingConstants;
 import java.awt.event.ActionEvent;
 
 import rice.environment.Environment;
+import rice.environment.time.simple.SimpleTimeSource;
 import rice.p2p.commonapi.NodeHandle;
 
 import java.awt.event.ActionListener;
@@ -29,6 +30,7 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import javax.swing.JLabel;
+import javax.swing.JTextPane;
 import javax.swing.JTextArea;
 import javax.swing.JRadioButton;
 
@@ -58,6 +60,7 @@ public class Radio {
 	private static JTextField textMyIP;
 	private Handler fileHandler;
 	public static Logger logger = Logger.getLogger(LoggingExample.class.getName());
+	public static long upTime = 0;
 
 	/**
 	 * Launch the application.
@@ -129,7 +132,8 @@ public class Radio {
 		connect.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				
+				SimpleTimeSource sts =  new SimpleTimeSource();
+				upTime = sts.currentTimeMillis();
 				//Logging config
 				try {
 					LogManager.getLogManager().readConfiguration(

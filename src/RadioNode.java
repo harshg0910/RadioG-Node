@@ -22,7 +22,6 @@ public class RadioNode {
 	LeafSet leafSet;
 	public static boolean isBootStrapeNode = false;
 	private static rice.p2p.commonapi.NodeHandle nodeHandle;
-	public static long upTime = 0;
 	public static SimpleTimeSource sts = new SimpleTimeSource();;
 
 	public static RadioNode getRadioNode() {
@@ -46,11 +45,8 @@ public class RadioNode {
 		if (localhost.isLoopbackAddress()) {
 			Socket s = new Socket("202.141.80.14", 80);
 			localhost = s.getLocalAddress();
-			System.out.println("****"
-					+ s.getLocalAddress().getHostAddress());
 			s.close();
 		}
-		System.out.println("**********"+localhost);
 		PastryNodeFactory factory = new SocketPastryNodeFactory(nidFactory,
 				localhost, bindport, env);
 
@@ -75,7 +71,7 @@ public class RadioNode {
 				}
 			}
 		}
-		Radio.logger.log(Level.INFO,"Node joined ring at " +upTime);
+		Radio.logger.log(Level.INFO,"Node joined ring at " +Radio.upTime);
 		System.out.println("Finished creating new node " + node);
 		updateLeafSet();
 		bindport = getBindPort(nodeHandle);
@@ -119,7 +115,5 @@ public class RadioNode {
 		return nodeHandle;
 	}
 	
-	public static long getUptime(){
-		return upTime;
-	}
+	
 }

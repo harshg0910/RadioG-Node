@@ -1,4 +1,5 @@
 
+
 public class CheckSystem {
 	public static String getOS(){
 		return System.getProperty("os.name");

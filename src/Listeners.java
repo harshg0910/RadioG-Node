@@ -5,7 +5,7 @@ import rice.p2p.commonapi.NodeHandle;
 
 public class Listeners {
 	private Vector<NodeHandle> listeningClients = new Vector<>();
-	public static final int MAX_LISTENER = 3;
+	public static final int MAX_LISTENER = 1;
 	private int noOfListener = 0;
 	private static Listeners listeners = null;
 	private Object Lock = new Object();
@@ -14,7 +14,7 @@ public class Listeners {
 		listeners = this;
 	}
 	public void addClient(NodeHandle client){
-		if(!listeningClients.contains(client) && noOfListener <= MAX_LISTENER){
+		if(!listeningClients.contains(client) && noOfListener < MAX_LISTENER){
 			synchronized (Lock) {
 				listeningClients.add(client);
 				noOfListener++;
@@ -75,5 +75,9 @@ public class Listeners {
 	
 	public boolean isClient(NodeHandle handle){
 		return listeningClients.contains(handle);
+	}
+	
+	public Vector<NodeHandle> getListeningClients(){
+		return listeningClients;
 	}
 }

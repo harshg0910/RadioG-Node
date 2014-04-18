@@ -43,13 +43,14 @@ public class RadioApp implements Application {
 	public boolean isAlreadySearching = false;
 	public static long streamStartedAt = 0; 
 	
+	private String VLCServerStream = "";
+
 	public static RadioApp getRadioApp(){
 		if(radioApp!=null){
 			return radioApp;
 		}
 		return null;
 	}
-	
 	
 	public void setStream(String src) {
 		hasStream = true;
@@ -67,6 +68,7 @@ public class RadioApp implements Application {
 	public NodeHandle getStreamingServer(){
 		return VLCStreamingServer;
 	}
+
 	public RadioApp(PastryNode node, int VLCStreamingPort, int bindPort)
 			throws IOException {
 		
@@ -91,7 +93,7 @@ public class RadioApp implements Application {
 			Socket s;
 			s = new Socket("202.141.80.14", 80);
 			localhost = s.getLocalAddress();
-			System.out.println("****"+s.getLocalAddress().getHostAddress());
+			System.out.println(s.getLocalAddress().getHostAddress());
 			s.close();
 		}
 		LocalIPAddress = localhost.getHostAddress();
@@ -102,54 +104,57 @@ public class RadioApp implements Application {
 		livenessChecker.startLivenessCheck();
 	}
 
-	
 	@Override
 	public void deliver(Id id, Message msg) {
-		// TODO Auto-generated method stub
-		
 		if(msg instanceof SyncMessage){
 			SyncMessage synMsg = (SyncMessage) msg;
 			System.out.println("Got message " + synMsg.getType());
 			switch (synMsg.getType()) {
 			case STREAM_REQUEST:
 				// Forward the stream if I have one
-				Radio.logger.log(Level.INFO,"Stream_Request from "+ synMsg.getHandle());
-				if (hasStream && listeners.getNoOfListeners() <= Listeners.MAX_LISTENER) {
+				Radio.logger.log(Level.INFO,
+						"Stream_Request from " + synMsg.getHandle());
+				if (hasStream
+						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER) {
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
 					reply.setVLCPort(VLCStreamingPort);
 					reply.setType(SyncMessage.Type.STREAM_OFFER);
 					replyMessage(synMsg, reply);
-					Radio.logger.log(Level.INFO,"Offering_to " + synMsg.getHandle());
+					Radio.logger.log(Level.INFO,
+							"Offering_to " + synMsg.getHandle());
 					System.out.println("Offering Stream to " + synMsg.getIP());
-				}
-				else{
+				} else {
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
 					reply.setVLCPort(VLCStreamingPort);
 					reply.setType(SyncMessage.Type.STREAM_REJECT);
 					replyMessage(synMsg, reply);
-					Radio.logger.log(Level.INFO,"Rejecting " + synMsg.getHandle());
-					System.out.println("Rejecting request of " + synMsg.getIP());
+					Radio.logger.log(Level.INFO,
+							"Rejecting " + synMsg.getHandle());
+					System.out
+							.println("Rejecting request of " + synMsg.getIP());
 				}
 				break;
 	
 			case STREAM_OFFER:
 				if (!ServerFound) {
 	
-					String VLCStream = "mmsh://" + synMsg.getIP() + ":"
+					VLCServerStream = "mmsh://" + synMsg.getIP() + ":"
 							+ synMsg.getVLCPort();
 					VLCStreamingServer = synMsg.getHandle();
-					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle().toString());
-					setStream(VLCStream);
+					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle()
+							.toString());
+					setStream(VLCServerStream);
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
 					reply.setType(SyncMessage.Type.STREAM_ACCEPT);
 					replyMessage(synMsg, reply);
-					Radio.logger.log(Level.INFO,"Accepting " + synMsg.getHandle());
+					Radio.logger.log(Level.INFO,
+							"Accepting " + synMsg.getHandle());
 					System.out.println("------------Accepting stream from "
 							+ synMsg.getHandle());
 					ServerFound = true;
@@ -160,23 +165,25 @@ public class RadioApp implements Application {
 	
 			case STREAM_ACCEPT:
 				listeners.addClient(synMsg.getHandle());
-				Radio.logger.log(Level.INFO,"Streaming to " + synMsg.getHandle());
-				System.out.println("-----------Streaming to " + synMsg.getHandle());
+				Radio.logger.log(Level.INFO,
+						"Streaming to " + synMsg.getHandle());
+				System.out.println("-----------Streaming to "
+						+ synMsg.getHandle());
 				break;
 				
 			case STREAM_REJECT:
-				Radio.logger.log(Level.INFO,"Rejected by " + synMsg.getHandle());
+				Radio.logger.log(Level.INFO,
+						"Rejected by " + synMsg.getHandle());
 				try {
 					sendStreamRequest();
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
+					Radio.logger.log(Level.SEVERE, e.getMessage());
 					e.printStackTrace();
 				}
 			default:
 				break;
 			}
-		}
-		else if(msg instanceof HeartBeat){
+		} else if (msg instanceof HeartBeat) {
 			setServerAlive(true);
 		}
 
@@ -197,8 +204,7 @@ public class RadioApp implements Application {
 		if (joined){
 			Radio.logger.log(Level.INFO,"Node Joined " + handle);
 			System.out.println("New node " + handle);
-		}
-		else {
+		} else {
 			Radio.logger.log(Level.INFO,"Node Left " + handle);
 			System.out.println("Node Left " + handle);
 			if(handle == VLCStreamingServer){
@@ -214,50 +220,50 @@ public class RadioApp implements Application {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-			}
-			else if (listeners.isClient(handle)){
+			} else if (listeners.isClient(handle)) {
 				Radio.logger.log(Level.INFO,"Cleint left " + handle);
 				listeners.removeClient(handle);
 			}
 		}
 	}
 	
-	
 	//Do call updateLeafSet before this function
 	// also Make serverfound = false
 	public void sendStreamRequest() throws Exception {
 		
-		
-		for ( NodeHandle i : node.getRoutingTable().asList()){
-			System.out.println("Routing : "+i);
-		}
-		
-		for ( NodeHandle i : RadioNode.getRadioNode().leafSet.asList()){
-			System.out.println("Leaf : "+i);
-		}
-		
-		
-		
-		
 		if(!RadioNode.isBootStrapeNode && !ServerFound && !isAlreadySearching){
 			isAlreadySearching = true;
-			if(lastCheckedServer < RadioNode.getRadioNode().leafSet.cwSize() && 
-				RadioNode.getRadioNode().leafSet.get(lastCheckedServer)!=RadioNode.getLocalNodeHandle()){
+
+			/*
+			 * Conditions to be satisfied 1. Within leafset bound. 2. should not
+			 * be same as the node itself 3. Should not be one of the receiving
+			 * clients
+			 */
+
+			if (lastCheckedServer < RadioNode.getRadioNode().leafSet.cwSize()
+					&& RadioNode.getRadioNode().leafSet.get(lastCheckedServer) != RadioNode
+							.getLocalNodeHandle()
+					&& !listeners.getListeningClients().contains(
+							RadioNode.getRadioNode().leafSet
+									.get(lastCheckedServer))) {
 				SyncMessage msg = new SyncMessage();
 				msg.setIP(getLocalIP());
 				msg.setType(SyncMessage.Type.STREAM_REQUEST);
 				msg.setHandle(endpoint.getLocalNodeHandle());
-				NodeHandle nh = RadioNode.getRadioNode().leafSet.get(lastCheckedServer);
+				NodeHandle nh = RadioNode.getRadioNode().leafSet
+						.get(lastCheckedServer);
+				//use routing table
+				if (nh != null) {
 				Radio.logger.log(Level.INFO,"Sending Request to " + nh);
 				System.out.println("Sending request for stream to " + nh);
-				
 				sendMessage(nh.getId(), msg);
+				}
 				lastCheckedServer++;
 				// select the item
-			}
-			else{
+			} else {
 				lastCheckedServer = -RadioNode.getRadioNode().leafSet.ccwSize();
-				System.out.println("Starting search from begining of the leafSet");
+				System.out
+						.println("Starting search from begining of the leafSet");
 			}
 			isAlreadySearching = false;	
 		}	
@@ -269,6 +275,7 @@ public class RadioApp implements Application {
 		}
 		return false;
 	}
+
 	public void sendMessage(Id id, Message msg) {
 		endpoint.route(id, msg, null);
 	}
@@ -289,6 +296,10 @@ public class RadioApp implements Application {
 	
 	public void checkDelay(NodeHandle handle){
 		
+	}
+
+	public String getVLCServerStream() {
+		return VLCServerStream;
 	}
 
 }
