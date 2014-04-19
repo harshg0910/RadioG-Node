@@ -4,6 +4,7 @@ import java.net.Socket;
 import java.util.Vector;
 import java.util.logging.Level;
 
+
 import rice.p2p.commonapi.Application;
 import rice.p2p.commonapi.Endpoint;
 import rice.p2p.commonapi.Id;
@@ -219,6 +220,14 @@ public class RadioApp implements Application {
 				System.out.println("-----------Streaming to "
 						+ synMsg.getHandle());
 
+				// Sending message to bootstrap to be recognized as free node
+				StreamUpdateMessage uMsg = new StreamUpdateMessage();
+				uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FREE);
+				uMsg.setLevel(ancestors.getLevel());
+				uMsg.setNode(node.getLocalNodeHandle());
+				// TODO send this message to bootstrap
+				// Problem to find bootstrap node id
+				
 				/*
 				 * Prepare and send ancestor list to the child
 				 */ 
@@ -240,7 +249,7 @@ public class RadioApp implements Application {
 			case SEND_STREAM:
 				if (RadioNode.isBootStrapNode) {
 					SyncMessage reply = new SyncMessage();
-					reply.setHandle(freeStreamers.getStreamer(((SyncMessage) msg).getAttempt()));
+					reply.setHandle(freeStreamers.getFreeStreamer(((SyncMessage) msg).getAttempt()));
 					reply.setType(SyncMessage.Type.FREE_STREAM);
 					replyMessage(synMsg, reply);
 				}
@@ -269,6 +278,19 @@ public class RadioApp implements Application {
 					Radio.logger.log(Level.SEVERE, e.getMessage());
 					e.printStackTrace();
 				}
+			}
+		}
+		else if(msg instanceof StreamUpdateMessage){
+			StreamUpdateMessage uMsg = (StreamUpdateMessage) msg;
+			switch (uMsg.info){
+				case STREAM_FREE:
+					freeStreamers.addNode(uMsg.getNode(),uMsg.getLevel());
+					break;
+				case STREAM_FULL: 
+					freeStreamers.removeNode(uMsg.getNode(),uMsg.getLevel());
+					break;
+				default:
+					break;
 			}
 		}
 		else if (msg instanceof AncestorMessage){
@@ -311,11 +333,6 @@ public class RadioApp implements Application {
 		if (joined) {
 			Radio.logger.log(Level.INFO, "Node Joined " + handle);
 			System.out.println("New node " + handle);
-
-			// Bootstrap node will maintain the details of all nodes
-			if (RadioNode.isBootStrapNode)
-				freeStreamers.addNode(handle);
-
 		} else {
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);

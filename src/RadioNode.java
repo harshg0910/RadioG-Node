@@ -23,7 +23,9 @@ public class RadioNode {
 	public static boolean isBootStrapNode = false;
 	private static rice.p2p.commonapi.NodeHandle nodeHandle;
 	public static SimpleTimeSource sts = new SimpleTimeSource();;
-
+	
+	
+	
 	public static RadioNode getRadioNode() {
 		if (radioNode != null) {
 			return radioNode;
@@ -52,7 +54,9 @@ public class RadioNode {
 
 		// construct a node
 		node = factory.newNode();
-
+		
+		
+		
 		nodeHandle = node.getLocalNodeHandle();
 		node.boot(bootaddress);
 

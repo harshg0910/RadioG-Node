@@ -9,21 +9,21 @@ public class StreamUpdateMessage implements Message {
 	 */
 	private static final long serialVersionUID = 1L;
 	
-	public static enum StreamInfo{
+	public static enum Type{
 		STREAM_FREE,
 		STREAM_FULL,
 	}
 	
-	private StreamInfo info;
+	public Type info;
 	private NodeHandle node;
+	private int level;
 	
 	
-	
-	public StreamInfo getInfo(){
+	public Type getInfo(){
 		return info;
 	}
 	
-	public void setInfo(StreamInfo inf){
+	public void setInfo(Type inf){
 		this.info = inf;
 	}
 
@@ -39,6 +39,14 @@ public class StreamUpdateMessage implements Message {
 
 	public void setNode(NodeHandle node) {
 		this.node = node;
+	}
+
+	public int getLevel() {
+		return level;
+	}
+
+	public void setLevel(int level) {
+		this.level = level;
 	}
 
 }
