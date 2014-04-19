@@ -2,7 +2,6 @@ import java.util.Vector;
 
 import rice.p2p.commonapi.NodeHandle;
 
-
 public class Listeners {
 	private Vector<NodeHandle> listeningClients = new Vector<>();
 	public static final int MAX_LISTENER = 3;
@@ -13,31 +12,55 @@ public class Listeners {
 	public Listeners(){
 		listeners = this;
 	}
-	public void addClient(NodeHandle client){
-		if(!listeningClients.contains(client) && noOfListener < MAX_LISTENER){
+	public void addClient(NodeHandle client) {
+
+		if (!listeningClients.contains(client) && noOfListener < MAX_LISTENER) {
 			synchronized (Lock) {
 				listeningClients.add(client);
 				noOfListener++;
+				if (noOfListener == MAX_LISTENER) {
+					// Sending message to bootstrap to be recognized as free
+					// node
+					StreamUpdateMessage uMsg = new StreamUpdateMessage();
+					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FULL);
+					uMsg.setLevel(RadioApp.getRadioApp().getAncestors()
+							.getLevel());
+					uMsg.setNode(RadioApp.endpoint.getLocalNodeHandle());
+					RadioApp.endpoint.route(RadioApp.getRadioApp()
+							.getBootstrapNodeId(), uMsg, null);
+				}
 			}
-			System.out.println("Client "+client+" added");
-			System.out.println("Current Clients "+listeningClients+" " + noOfListener);
+			System.out.println("Client " + client + " added");
+			System.out.println("Current Clients " + listeningClients + " "
+					+ noOfListener);
 			Radio.refrestClientList(listeningClients);
-		}
-		else{
+
+		} else {
 			System.out.println("Max listener limit reached");
 		}
+
 	}
-	
-	public void removeClient(NodeHandle client){
+
+	public void removeClient(NodeHandle client) {
 		System.out.print("Removing " + client);
 		synchronized (Lock) {
-			if(listeningClients.removeElement(client)){
+			if (listeningClients.removeElement(client)) {
 				noOfListener--;
 				Radio.refrestClientList(listeningClients);
-				System.out.println("Client "+client+" removed");
-			}
-			else{
-				System.out.println("Client "+client+" not removed");
+				System.out.println("Client " + client + " removed");
+				if (noOfListener == MAX_LISTENER - 1) {
+					// Sending message to bootstrap to be recognized as free
+					// node
+					StreamUpdateMessage uMsg = new StreamUpdateMessage();
+					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FREE);
+					uMsg.setLevel(RadioApp.getRadioApp().getAncestors()
+							.getLevel());
+					uMsg.setNode(RadioApp.endpoint.getLocalNodeHandle());
+					RadioApp.endpoint.route(RadioApp.getRadioApp()
+							.getBootstrapNodeId(), uMsg, null);
+				}
+			} else {
+				System.out.println("Client " + client + " not removed");
 			}
 		}
 	}

@@ -15,7 +15,8 @@ public class SyncMessage implements Message{
 		STREAM_ACCEPT,
 		STREAM_REJECT,
 		SEND_STREAM, // This will be sent by a node to bootstrap one to get nodehandle of available stream 
-		FREE_STREAM  // This will contain the nodehandle of the free stream
+		FREE_STREAM , // This will contain the nodehandle of the free stream
+		CLIENT_DYING
 	}
 	
 	private Type type;

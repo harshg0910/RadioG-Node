@@ -4,6 +4,8 @@ import java.net.Socket;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import javax.xml.bind.Marshaller.Listener;
+
 import rice.p2p.commonapi.Application;
 import rice.p2p.commonapi.Endpoint;
 import rice.p2p.commonapi.Id;
@@ -12,16 +14,6 @@ import rice.p2p.commonapi.NodeHandle;
 import rice.p2p.commonapi.RouteMessage;
 import rice.pastry.PastryNode;
 import rice.pastry.routing.RouteSet;
-
-/*
- * pange :
- * 1. lister <=> steramer
- * 2. backup free nodes
- * 3. flash crowd
- * 4. rejecting stream bug
- * 
- * 
- */
 
 public class RadioApp implements Application {
 
@@ -63,8 +55,11 @@ public class RadioApp implements Application {
 	private long PingTime = 0;
 	private long PongTime = 0;
 
-	private Id bootstrapNodeID = null;
+	private static Id bootstrapNodeID = null;
 	private short attempt = 0;
+
+	private int totalUserCount = 0;
+	private int currentUserCount = 0;
 
 	/*
 	 * Returns insance of RadioApp
@@ -228,15 +223,15 @@ public class RadioApp implements Application {
 							"Accepting " + synMsg.getHandle());
 					System.out.println("------------Accepting stream from "
 							+ synMsg.getHandle());
-					
-					// Sending message to bootstrap to be recognized as free node
+
+					// Sending message to bootstrap to be recognized as free
+					// node
 					StreamUpdateMessage uMsg = new StreamUpdateMessage();
 					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FREE);
 					uMsg.setLevel(ancestors.getLevel());
 					uMsg.setNode(node.getLocalNodeHandle());
 					endpoint.route(bootstrapNodeID, uMsg, null);
-					
-					
+
 					ServerFound = true;
 					setServerAlive(true);
 					lastCheckedServer = 0;
@@ -253,7 +248,6 @@ public class RadioApp implements Application {
 						"Streaming to " + synMsg.getHandle());
 				System.out.println("-----------Streaming to "
 						+ synMsg.getHandle());
-
 
 				/*
 				 * Prepare and send ancestor list to the child
@@ -311,7 +305,11 @@ public class RadioApp implements Application {
 						e.printStackTrace();
 					}
 				break;
-
+			case CLIENT_DYING:
+				Radio.logger.log(Level.INFO,
+						"Client left " + synMsg.getHandle());
+				listeners.removeClient(synMsg.getHandle());
+				break;
 			default:
 				break;
 			}
@@ -346,7 +344,7 @@ public class RadioApp implements Application {
 			AncestorMessage ancMsg = (AncestorMessage) msg;
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
-			listeners.broadCastAncestor(ancestors,node.getLocalNodeHandle());
+			listeners.broadCastAncestor(ancestors, node.getLocalNodeHandle());
 			serverLatency += ancMsg.getDelay();
 		} else if (msg instanceof PingPong) {
 			PingPong pingpong = (PingPong) msg;
@@ -386,6 +384,9 @@ public class RadioApp implements Application {
 		if (joined) {
 			Radio.logger.log(Level.INFO, "Node Joined " + handle);
 			System.out.println("New node " + handle);
+			totalUserCount++;
+			currentUserCount++;
+			//change count value in the gui
 		} else {
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
@@ -402,7 +403,7 @@ public class RadioApp implements Application {
 				System.out.println("Steaming Server Left");
 				RadioNode.getRadioNode().updateLeafSet();
 				try {
-					ServerFound = false;
+					setUpServerSearch();
 					sendStreamRequest();
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -420,7 +421,6 @@ public class RadioApp implements Application {
 
 		if (!RadioNode.isBootStrapNode && !ServerFound && !isAlreadySearching) {
 			isAlreadySearching = true;
-
 
 			NodeHandle candidateServer = getCandiadteServer();
 
@@ -541,7 +541,28 @@ public class RadioApp implements Application {
 
 	public static void close_connection() {
 		if (endpoint != null) {
+			// tell children i am dying
+			Radio.logger.log(Level.INFO, "Telling clients i am dying");
 			Listeners.getListener().sendHeartBeat(HeartBeat.Type.DYING);
+			// tell server i am dying
+			Radio.logger.log(Level.INFO, "Telling server i am dying");
+			SyncMessage CDmsg = new SyncMessage();
+			CDmsg.setType(SyncMessage.Type.CLIENT_DYING);
+			CDmsg.setHandle(endpoint.getLocalNodeHandle());
+			if (!RadioNode.isBootStrapNode) {
+				endpoint.route(null, CDmsg, VLCStreamingServer);
+				// tell bootstrap i am dying if i have some free slot
+				// then only i can have slot there
+				Radio.logger.log(Level.INFO, "Telling bootstrap i am dying");
+				if (Listeners.getListener().getNoOfListeners() < Listeners.MAX_LISTENER) {
+					StreamUpdateMessage uMsg = new StreamUpdateMessage();
+					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FULL);
+					uMsg.setLevel(getRadioApp().getAncestors().getLevel());
+					uMsg.setNode(endpoint.getLocalNodeHandle());
+					RadioApp.endpoint.route(RadioApp.getRadioApp()
+							.getBootstrapNodeId(), uMsg, null);
+				}
+			}
 		}
 	}
 
@@ -549,7 +570,7 @@ public class RadioApp implements Application {
 		hasStream = false;
 		ServerFound = false;
 		setServerAlive(false);
-
+		Radio.upTime = 0;
 		Player.stopServer();
 		Player.stopListening();
 	}

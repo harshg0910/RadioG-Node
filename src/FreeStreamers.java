@@ -32,7 +32,7 @@ public class FreeStreamers {
 		}
 
 		public int compareTo(FreeNode arg0) {
-			return arg0.level - level;
+			return level - arg0.level;
 		}
 
 		public boolean equals(FreeNode arg0){

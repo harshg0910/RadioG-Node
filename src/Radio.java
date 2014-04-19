@@ -68,6 +68,10 @@ public class Radio {
 	static final int MAX_VOLUME = 200;
 	static final int MIN_VOLUME = 0;
 	static final int INIT_VOLUME = 100;
+	JLabel lblTotalUsers;
+	public static JLabel totalUserCnt;
+	JLabel currentUserCnt;
+	public static JLabel curUserCnt;
 
 	/**
 	 * Launch the application.
@@ -308,7 +312,7 @@ public class Radio {
 		frmRadiog.getContentPane().add(rdbtnBootstrapNode);
 
 		lblSystemProperty = new JLabel("");
-		lblSystemProperty.setBounds(30, 11, 445, 26);
+		lblSystemProperty.setBounds(30, 11, 140, 26);
 		frmRadiog.getContentPane().add(lblSystemProperty);
 
 		JLabel lblGettingSteamFrom = new JLabel("Getting steam from");
@@ -376,6 +380,22 @@ public class Radio {
 		JLabel lblVolume = new JLabel("Volume");
 		lblVolume.setBounds(350, 177, 46, 14);
 		frmRadiog.getContentPane().add(lblVolume);
+		
+		lblTotalUsers = new JLabel("Total User Count");
+		lblTotalUsers.setBounds(199, 17, 98, 14);
+		frmRadiog.getContentPane().add(lblTotalUsers);
+		
+		totalUserCnt = new JLabel("0");
+		totalUserCnt.setBounds(312, 17, 23, 14);
+		frmRadiog.getContentPane().add(totalUserCnt);
+		
+		currentUserCnt = new JLabel("Current User Count");
+		currentUserCnt.setBounds(397, 17, 112, 14);
+		frmRadiog.getContentPane().add(currentUserCnt);
+		
+		curUserCnt = new JLabel("0");
+		curUserCnt.setBounds(519, 17, 17, 14);
+		frmRadiog.getContentPane().add(curUserCnt);
 
 	}
 
@@ -453,4 +473,6 @@ public class Radio {
 		return ip;
 		
 	}
+	
+
 }
