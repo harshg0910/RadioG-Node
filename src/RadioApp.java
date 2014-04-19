@@ -283,7 +283,24 @@ public class RadioApp implements Application {
 			case FREE_STREAM:
 
 				// Send request to the node replied by the bootstrap server
-				if (validateCandidateServer(synMsg.getHandle())) {
+				if (synMsg.getHandle() == null) {
+					lastCheckedServer = 0;
+					rowOffset = 0;
+					attempt = 0;
+
+					try {
+						// You have exhausted all the possible paths to find
+						// free nodes.
+						// Now wait quietly for the salvation of the lord.
+						// May God guide you for your next search.
+						endpoint.getEnvironment().getTimeSource().sleep(1000);
+						sendStreamRequest();
+					} catch (Exception e) {
+						Radio.logger.log(Level.SEVERE, e.getMessage());
+						e.printStackTrace();
+					}
+
+				} else if (validateCandidateServer(synMsg.getHandle())) {
 					SyncMessage msgRequest = new SyncMessage();
 					msgRequest.setIP(getLocalIP());
 					msgRequest.setType(SyncMessage.Type.STREAM_REQUEST);
@@ -334,7 +351,10 @@ public class RadioApp implements Application {
 				freeStreamers.addNode(uMsg.getNode(), uMsg.getLevel());
 				break;
 			case STREAM_FULL:
-				freeStreamers.removeNode(uMsg.getNode(), uMsg.getLevel());
+				freeStreamers.removeNode(uMsg.getNode());
+				break;
+			case LEVEL_UPDATE:
+				freeStreamers.updateNode(uMsg.getNode(), uMsg.getLevel());
 				break;
 			default:
 				break;
@@ -346,6 +366,17 @@ public class RadioApp implements Application {
 			ancestors.printAncestors();
 			listeners.broadCastAncestor(ancestors, node.getLocalNodeHandle());
 			serverLatency += ancMsg.getDelay();
+
+			// Update ancestor list to bootstrap
+			if (listeners.getNoOfListeners() < Listeners.MAX_LISTENER) {
+				StreamUpdateMessage uMsg = new StreamUpdateMessage();
+				uMsg.setInfo(StreamUpdateMessage.Type.LEVEL_UPDATE);
+				uMsg.setLevel(RadioApp.getRadioApp().getAncestors().getLevel());
+				uMsg.setNode(RadioApp.endpoint.getLocalNodeHandle());
+				RadioApp.endpoint.route(RadioApp.getRadioApp()
+						.getBootstrapNodeId(), uMsg, null);
+			}
+
 		} else if (msg instanceof PingPong) {
 			PingPong pingpong = (PingPong) msg;
 			if (pingpong.getType() == PingPong.Type.PING) {
@@ -440,6 +471,7 @@ public class RadioApp implements Application {
 					sendStreamRequest();
 				}
 			} else {
+
 				SyncMessage msg = new SyncMessage();
 				msg.setType(SyncMessage.Type.SEND_STREAM);
 				msg.setHandle(endpoint.getLocalNodeHandle());

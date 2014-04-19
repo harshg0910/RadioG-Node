@@ -35,10 +35,10 @@ public class FreeStreamers {
 			return level - arg0.level;
 		}
 
-		public boolean equals(FreeNode arg0){
-			return arg0.handle.equals(handle) && arg0.level == level ;
+		public boolean equals(FreeNode arg0) {
+			return arg0.handle.equals(handle) && arg0.level == level;
 		}
-		
+
 	}
 
 	// To manage access by different threads
@@ -54,6 +54,12 @@ public class FreeStreamers {
 			System.out.println(fn.handle + " Level: " + fn.level);
 		}
 		System.out.println("-------End Queue :");
+	}
+
+	// Update the level
+	public void updateNode(NodeHandle n, int level) {
+		removeNode(n);
+		addNode(n, level);
 	}
 
 	// When a node leaves the network, delete corresponding entry
@@ -73,17 +79,17 @@ public class FreeStreamers {
 		System.out.println("-------End Queue :");
 	}
 
-	// When all slots are full, use this method to remove
-	public void removeNode(NodeHandle n, int level) {
-
-		queue.remove(new FreeNode(n, level));
-		Radio.logger.log(Level.INFO, "Slots Full : " + n);
-		System.out.println("-------Printing Queue :");
-		for (FreeNode fn : queue) {
-			System.out.println(fn.handle + " Level: " + fn.level);
-		}
-		System.out.println("-------End Queue :");
-	}
+	// // When all slots are full, use this method to remove
+	// public void removeNode(NodeHandle n, int level) {
+	//
+	// queue.remove(new FreeNode(n, level));
+	// Radio.logger.log(Level.INFO, "Slots Full : " + n);
+	// System.out.println("-------Printing Queue :");
+	// for (FreeNode fn : queue) {
+	// System.out.println(fn.handle + " Level: " + fn.level);
+	// }
+	// System.out.println("-------End Queue :");
+	// }
 
 	// Returns the 'attempt+1'th free node
 	// Returns null when attempt is negative or greater than the
@@ -93,9 +99,12 @@ public class FreeStreamers {
 		// TODO : Apply more efficient node selection algorithm
 		// like randomized or proximity based
 		// It will return the node with required lowest free level in the tree
-
-		return ((FreeNode) queue.toArray()[attempt % queue.size()]).handle;
-
+		if (attempt < queue.size() && attempt >= 0) {
+			return ((FreeNode) queue.toArray()[attempt]).handle;
+		}
+		else {
+			return null;
+		}
 		/*
 		 * Iterator<NodeHandle> ItrKeys = map.keySet().iterator();
 		 * 

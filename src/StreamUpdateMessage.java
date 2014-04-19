@@ -12,6 +12,7 @@ public class StreamUpdateMessage implements Message {
 	public static enum Type{
 		STREAM_FREE,
 		STREAM_FULL,
+		LEVEL_UPDATE
 	}
 	
 	public Type info;
