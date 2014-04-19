@@ -55,9 +55,9 @@ public class Listeners {
 		}
 	}
 	
-	public void sendHeartBeat(){
+	public void sendHeartBeat(HeartBeat.Type type){
 		for(int i = 0; i < noOfListener; i++) {
-			HeartBeat heartBeat = new HeartBeat();
+			HeartBeat heartBeat = new HeartBeat(type);
 			RadioApp.getRadioApp().endpoint.route(null, heartBeat, listeningClients.get(i));
 		}
 	}

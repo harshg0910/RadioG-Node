@@ -1,3 +1,5 @@
+import java.util.logging.Level;
+
 import rice.pastry.NodeHandle;
 import rice.pastry.routing.RouteSet;
 import uk.co.caprica.vlcj.binding.internal.libvlc_state_t;
@@ -20,13 +22,7 @@ public class CheckLIveness extends Thread {
 				} else if (!RadioNode.isBootStrapNode
 						&& !RadioApp.getRadioApp().isAlreadySearching) {
 					System.out.println("Server dead");
-					RadioApp.getRadioApp().hasStream = false;
-					RadioApp.ServerFound = false;
-					RadioApp.getRadioApp().setServerAlive(false);
-
-					Player.stopServer();
-					Player.stopListening();
-					RadioNode.getRadioNode().updateLeafSet();
+					RadioApp.getRadioApp().setUpServerSearch();
 					try {
 						System.out.println("Looking for aleternate server");
 						RadioApp.getRadioApp().sendStreamRequest();
@@ -39,9 +35,9 @@ public class CheckLIveness extends Thread {
 				if (Player.mediaPlayer != null) {
 					if (Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Ended
 							|| Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Error) {
-						// Radio.logger.log(Level.SEVERE, "Streaming stopped");
-						RadioApp.getRadioApp().setStream(
-								RadioApp.getRadioApp().getVLCServerStream());
+						 Radio.logger.log(Level.SEVERE, "Streaming stopped");
+						 RadioApp.getRadioApp().setStream(
+								RadioApp.getRadioApp().getVLCServerStream());						
 					}
 				}
 				// Listeners.getListener().update();
@@ -63,7 +59,7 @@ public class CheckLIveness extends Thread {
 //					System.out.println(nh.toString());
 //				}
 
-				Listeners.getListener().sendHeartBeat();
+				Listeners.getListener().sendHeartBeat(HeartBeat.Type.ALIVE);
 
 				try {
 					Thread.sleep(7000);

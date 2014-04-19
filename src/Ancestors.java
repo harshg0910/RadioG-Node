@@ -29,7 +29,12 @@ public class Ancestors {
 	public void initAncestors(Vector<NodeHandle> ancestors) {
 		ancestorList = (Vector<NodeHandle>) ancestors.clone();
 	}
-
+	public  boolean isAncestor(NodeHandle handle){
+		if(ancestorList!=null){
+			return ancestorList.contains(handle);
+		}
+		return true;
+	}
 	public void printAncestors() {
 		System.out.println(".....Printing Ancestor List....");
 		for(NodeHandle node : ancestorList){

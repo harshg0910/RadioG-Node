@@ -1,12 +1,17 @@
 import rice.p2p.commonapi.Message;
 
 
+@SuppressWarnings("serial")
 public class HeartBeat implements Message{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
+	
+	enum Type{
+		ALIVE,
+		DYING
+	}
+	Type type;
+	public HeartBeat(Type type){
+		this.type = type;
+	}
 	@Override
 	public int getPriority() {
 		// TODO Auto-generated method stub

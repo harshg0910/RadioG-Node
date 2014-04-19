@@ -94,6 +94,15 @@ public class Radio {
 	 */
 	private void initialize() {
 		System.out.println("Initializing GUI...");
+		
+		Runtime.getRuntime().addShutdownHook(new Thread()
+		{
+		    @Override
+		    public void run()
+		    {
+		        RadioApp.close_connection();
+		    }
+		});
 		frmRadiog = new JFrame();
 		frmRadiog.setTitle("RadioG");
 		frmRadiog.setBounds(100, 100, 585, 403);
@@ -114,18 +123,20 @@ public class Radio {
 		
 		// Finding bootstrap node from url
 
-		try {
-			String[] boot = getUrlSource(
-					"http://172.16.27.65/files/RadioGBoot.txt").split(":");
-			// System.out.println(boot[0]);
-			// System.out.println(boot[1]);
-			txtBootstrapIp.setText(boot[0]);
-			txtBootstrapPort.setText(boot[1]);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			logger.warning("Cannot fetch bootstap server");
-			lblError.setText("Cannot fetch bootstap server.\nPlease enter manually");
-		}
+		txtBootstrapIp.setText("172.16.27.42");
+		txtBootstrapPort.setText("5770");
+//		try {
+////			String[] boot = getUrlSource(
+////					"http://172.16.27.65/files/RadioGBoot.txt").split(":");
+//			// System.out.println(boot[0]);
+//			// System.out.println(boot[1]);
+////			txtBootstrapIp.setText(boot[0]);
+////			txtBootstrapPort.setText(boot[1]);
+//		} catch (IOException e1) {
+//			// TODO Auto-generated catch block
+//			logger.warning("Cannot fetch bootstap server");
+//			lblError.setText("Cannot fetch bootstap server.\nPlease enter manually");
+//		}
 
 		final JButton connect = new JButton("Start");
 		connect.addActionListener(new ActionListener() {

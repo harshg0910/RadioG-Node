@@ -26,10 +26,10 @@ import rice.pastry.routing.RouteSet;
 public class RadioApp implements Application {
 
 	private static RadioApp radioApp = null;		//singleton instance of RadioApp
-	protected Endpoint endpoint;					//Endpoint of this node in the network
+	protected static Endpoint endpoint = null;					//Endpoint of this node in the network
 	public boolean hasStream = false;				//flag indicating the availibilty of the stream 
 	private String LocalIPAddress;					//local IP address
-	private PastryNode node;						//pastrynode instance of this node
+	private PastryNode node = null;						//pastrynode instance of this node
 	private static boolean isServerAlive = false;	//flag to indicate server aliveness
 	private CheckLIveness livenessChecker;			
 	private Listeners listeners;
@@ -53,6 +53,8 @@ public class RadioApp implements Application {
 
 	private static Ancestors ancestors;				//Ancestors of the node in streaming tree
 	private long serverLatency = 0;					//server's latency
+	private long PingTime = 0;
+	private long PongTime = 0;
 
 	/*
 	 * Returns insance of RadioApp
@@ -147,7 +149,7 @@ public class RadioApp implements Application {
 				Radio.logger.log(Level.INFO,
 						"Stream_Request from " + synMsg.getHandle());
 				if (hasStream
-						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER) {
+						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER  && !ancestors.isAncestor(synMsg.getHandle())) {
 
 					/*
 					 * Prepare and send stream offer
@@ -205,6 +207,7 @@ public class RadioApp implements Application {
 					setServerAlive(true);
 					lastCheckedServer = 0;
 					rowOffset = 0;
+					serverLatency  = 0;
 					checkDelay(VLCStreamingServer);
 				}
 				break;
@@ -254,7 +257,19 @@ public class RadioApp implements Application {
 				break;
 			}
 		} else if (msg instanceof HeartBeat) {
-			setServerAlive(true);
+			HeartBeat hb = (HeartBeat)msg;
+			if(hb.type == HeartBeat.Type.ALIVE){
+				setServerAlive(true);
+			}else if(hb.type == HeartBeat.Type.DYING){
+				Radio.logger.log(Level.INFO,"Server leaving..");
+				setUpServerSearch();
+				try {
+					sendStreamRequest();
+				} catch (Exception e) {
+					Radio.logger.log(Level.SEVERE, e.getMessage());
+					e.printStackTrace();
+				}
+			}
 		}
 		else if (msg instanceof AncestorMessage){
 			Radio.logger.log(Level.INFO, "Ancestor List Received");
@@ -262,10 +277,25 @@ public class RadioApp implements Application {
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
 			serverLatency += ancMsg.getDelay();
+		}else if(msg instanceof PingPong){
+			PingPong pingpong = (PingPong)msg;
+			if(pingpong.getType() == PingPong.Type.PING){
+				Radio.logger.log(Level.INFO,"Ping message received from " + pingpong.getHandle() + "at "+ PongTime);
+				PingPong pong = new PingPong(PingPong.Type.PONG,node.getLocalNodeHandle());
+				endpoint.route(null, pong,pingpong.getHandle());
+				Radio.logger.log(Level.INFO,"Pong message sent to " + pingpong.getHandle());
+			}
+			else if(pingpong.getType() == PingPong.Type.PONG){
+				PongTime = endpoint.getEnvironment().getTimeSource().currentTimeMillis();
+				serverLatency += (PongTime - PingTime)/2;
+				Radio.logger.log(Level.INFO,"Pong message received at " + PongTime);
+				Radio.logger.log(Level.INFO, "End to end delay "+serverLatency);
+			}
 		}
 
 	}
-
+	
+	
 	@Override
 	public boolean forward(RouteMessage arg0) {
 		return true;
@@ -422,11 +452,29 @@ public class RadioApp implements Application {
 	}
 
 	public void checkDelay(NodeHandle handle) {
-
+		PingPong ping = new PingPong(PingPong.Type.PING,node.getLocalNodeHandle());
+		PingTime = endpoint.getEnvironment().getTimeSource().currentTimeMillis();
+		Radio.logger.log(Level.INFO,"Send ping to "+handle +" at "+PingTime);
+		endpoint.route(null, ping, handle);		//send message directly to handle
 	}
 
 	public String getVLCServerStream() {
 		return VLCServerStream;
+	}
+	
+	public static void close_connection(){
+		if(endpoint != null){
+			Listeners.getListener().sendHeartBeat(HeartBeat.Type.DYING);
+		}
+	}
+	
+	public void setUpServerSearch(){
+		hasStream = false;
+		ServerFound = false;
+		setServerAlive(false);
+
+		Player.stopServer();
+		Player.stopListening();
 	}
 
 }
