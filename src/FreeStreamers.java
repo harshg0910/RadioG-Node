@@ -1,7 +1,11 @@
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.logging.Level;
 
 import rice.p2p.commonapi.NodeHandle;
 
@@ -14,59 +18,96 @@ import rice.p2p.commonapi.NodeHandle;
  * @author Harsh
  * 
  */
+
 public class FreeStreamers {
 
-	// Keeps track of whether a node has free slots or not
-	private Map<NodeHandle, Boolean> map = new HashMap<NodeHandle, Boolean>();
+	// To keep track of nodehandles and their level
+	class FreeNode implements Comparable<FreeNode> {
+		public NodeHandle handle;
+		public int level;
 
-	// Returns the set of all nodes present in the network 
-	public Set<NodeHandle> getAllNodes(){
-		return map.keySet();
-	}
-	// Check whether a node has free slot or not
-	public boolean hasFreeSlot(NodeHandle n) {
-		return map.get(n).booleanValue();
+		FreeNode(NodeHandle nh, int l) {
+			handle = nh;
+			level = l;
+		}
+
+		public int compareTo(FreeNode arg0) {
+			return arg0.level - level;
+		}
+
+		public boolean equals(FreeNode arg0){
+			return arg0.handle.equals(handle) && arg0.level == level ;
+		}
+		
 	}
 
-	// When a new node join the network, mark all slots as free
-	public void addNode(NodeHandle n) {
-		map.put(n, true);
+	// To manage access by different threads
+	// Keeps track of free nodes with their level ( Bootstrap : 0th level)
+	Queue<FreeNode> queue = new PriorityBlockingQueue<FreeNode>();
+
+	// When a new node join the network, mark as free
+	public void addNode(NodeHandle n, int level) {
+		queue.add(new FreeNode(n, level));
+		Radio.logger.log(Level.INFO, "Slot Free : " + n);
+		System.out.println("-------Printing Queue :");
+		for (FreeNode fn : queue) {
+			System.out.println(fn.handle + " Level: " + fn.level);
+		}
+		System.out.println("-------End Queue :");
 	}
 
 	// When a node leaves the network, delete corresponding entry
 	public void removeNode(NodeHandle n) {
-		map.remove(n);
+
+		for (FreeNode fn : queue) {
+			if (fn.handle == n) {
+				queue.remove(fn);
+				break;
+			}
+		}
+		Radio.logger.log(Level.INFO, "Node Left : " + n);
+		System.out.println("-------Printing Queue :");
+		for (FreeNode fn : queue) {
+			System.out.println(fn.handle + " Level: " + fn.level);
+		}
+		System.out.println("-------End Queue :");
 	}
 
-	// Update value corresponding to a node
-	public void set(NodeHandle n, boolean t) {
-		map.put(n, t);
+	// When all slots are full, use this method to remove
+	public void removeNode(NodeHandle n, int level) {
+
+		queue.remove(new FreeNode(n, level));
+		Radio.logger.log(Level.INFO, "Slots Full : " + n);
+		System.out.println("-------Printing Queue :");
+		for (FreeNode fn : queue) {
+			System.out.println(fn.handle + " Level: " + fn.level);
+		}
+		System.out.println("-------End Queue :");
 	}
 
-	//	Returns  the 'attempt+1'th free node
-	//	Returns null when attempt is negative or greater than the 
-	// 	total free nodes in the network
-	public NodeHandle getStreamer(short attempt) {
+	// Returns the 'attempt+1'th free node
+	// Returns null when attempt is negative or greater than the
+	// total free nodes in the network
+	public NodeHandle getFreeStreamer(short attempt) {
 
 		// TODO : Apply more efficient node selection algorithm
 		// like randomized or proximity based
-		Iterator<NodeHandle> ItrKeys = map.keySet().iterator();
-		
-		NodeHandle freeNode = null;
-		
-		// After this loop freeNode will contain 'attempt+1'th free node
-		while (attempt >= 0) {
-			if(ItrKeys.hasNext())
-				freeNode = ItrKeys.next();
-			else
-				freeNode = null;
-			
-			// This while loop will find the next free node
-			while (ItrKeys.hasNext() && map.get(freeNode) != true){
-				freeNode = ItrKeys.next();
-			}
-			attempt--;
-		}
-		return freeNode;
+		// It will return the node with required lowest free level in the tree
+
+		return ((FreeNode) queue.toArray()[attempt % queue.size()]).handle;
+
+		/*
+		 * Iterator<NodeHandle> ItrKeys = map.keySet().iterator();
+		 * 
+		 * NodeHandle freeNode = null;
+		 * 
+		 * // After this loop freeNode will contain 'attempt+1'th free node
+		 * while (attempt >= 0) { if (ItrKeys.hasNext()) freeNode =
+		 * ItrKeys.next(); else freeNode = null;
+		 * 
+		 * // This while loop will find the next free node while
+		 * (ItrKeys.hasNext() && map.get(freeNode) != true) { freeNode =
+		 * ItrKeys.next(); } attempt--; } return freeNode;
+		 */
 	}
 }
