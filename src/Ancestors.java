@@ -17,7 +17,10 @@ public class Ancestors {
 
 	// Returns the level of the current node with level 0 assigned to root
 	public int getLevel(){
-		return ancestorList.size();
+		if(ancestorList != null)
+			return ancestorList.size();
+		else
+			return 0;
 	}
 	
 	public void removeAncestor(NodeHandle node) {

@@ -1,3 +1,4 @@
+import rice.p2p.commonapi.Id;
 import rice.p2p.commonapi.Message;
 import rice.p2p.commonapi.NodeHandle;
 
@@ -22,6 +23,7 @@ public class SyncMessage implements Message{
 	private int VLCPort;
 	private NodeHandle ServerHandle;
 	private short attempt;
+	private Id bootstrapNodeID;
 	
 	public int getVLCPort(){
 		return VLCPort;
@@ -69,5 +71,13 @@ public class SyncMessage implements Message{
 
 	public void setAttempt(short attempt) {
 		this.attempt = attempt;
+	}
+
+	public Id getBootstrapNodeID() {
+		return bootstrapNodeID;
+	}
+
+	public void setBootstrapNodeID(Id bootstrapNodeID) {
+		this.bootstrapNodeID = bootstrapNodeID;
 	}
 }

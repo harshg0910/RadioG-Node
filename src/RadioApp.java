@@ -4,7 +4,6 @@ import java.net.Socket;
 import java.util.Vector;
 import java.util.logging.Level;
 
-
 import rice.p2p.commonapi.Application;
 import rice.p2p.commonapi.Endpoint;
 import rice.p2p.commonapi.Id;
@@ -26,36 +25,46 @@ import rice.pastry.routing.RouteSet;
 
 public class RadioApp implements Application {
 
-	private static RadioApp radioApp = null;		//singleton instance of RadioApp
-	protected static Endpoint endpoint = null;					//Endpoint of this node in the network
-	public boolean hasStream = false;				//flag indicating the availibilty of the stream 
-	private String LocalIPAddress;					//local IP address
-	private PastryNode node = null;						//pastrynode instance of this node
-	private static boolean isServerAlive = false;	//flag to indicate server aliveness
-	private CheckLIveness livenessChecker;			
+	private static RadioApp radioApp = null; // singleton instance of RadioApp
+	protected static Endpoint endpoint = null; // Endpoint of this node in the
+												// network
+	public boolean hasStream = false; // flag indicating the availibilty of the
+										// stream
+	private String LocalIPAddress; // local IP address
+	private PastryNode node = null; // pastrynode instance of this node
+	private static boolean isServerAlive = false; // flag to indicate server
+													// aliveness
+	private CheckLIveness livenessChecker;
 	private Listeners listeners;
 	private Object lock = new Object();
-	
+
 	/* Streaming Server Variables */
-	private int VLCStreamingPort = 7456;			//port at which VLC Server will listen
-	private static NodeHandle VLCStreamingServer;	//node handle of the streaming server
-	private int bindport;							//port at which application is bound							
-	
-	public static boolean ServerFound = false;		
-	public boolean isAlreadySearching = false;		//true if the node is already searching for a server
-													//prevents from multiple concurrent search attempt
-	private int lastCheckedServer = 0;					//clock hand for the last checked server
+	private int VLCStreamingPort = 7456; // port at which VLC Server will listen
+	private static NodeHandle VLCStreamingServer; // node handle of the
+													// streaming server
+	private int bindport; // port at which application is bound
+
+	public static boolean ServerFound = false;
+	public boolean isAlreadySearching = false; // true if the node is already
+												// searching for a server
+												// prevents from multiple
+												// concurrent search attempt
+	private int lastCheckedServer = 0; // clock hand for the last checked server
 	private int rowOffset = 0;
 	private int MAX_ROW_OFFSET = 3;
-	
-	public static long streamStartedAt = 0;			//streaming start time
-	private String VLCServerStream = "";			//MRL of streaming server
+
+	public static long streamStartedAt = 0; // streaming start time
+	private String VLCServerStream = ""; // MRL of streaming server
 	public FreeStreamers freeStreamers;
 
-	private static Ancestors ancestors;				//Ancestors of the node in streaming tree
-	private long serverLatency = 0;					//server's latency
+	private static Ancestors ancestors; // Ancestors of the node in streaming
+										// tree
+	private long serverLatency = 0; // server's latency
 	private long PingTime = 0;
 	private long PongTime = 0;
+
+	private Id bootstrapNodeID = null;
+	private short attempt = 0;
 
 	/*
 	 * Returns insance of RadioApp
@@ -65,6 +74,14 @@ public class RadioApp implements Application {
 			return radioApp;
 		}
 		return null;
+	}
+
+	public Ancestors getAncestors() {
+		return ancestors;
+	}
+
+	public Id getBootstrapNodeId() {
+		return bootstrapNodeID;
 	}
 
 	/*
@@ -82,17 +99,17 @@ public class RadioApp implements Application {
 	public String getLocalIP() {
 		return LocalIPAddress;
 	}
-	
+
 	/*
 	 * Returns node handle of the streaming server
 	 */
 	public NodeHandle getStreamingServer() {
 		return VLCStreamingServer;
 	}
-	
+
 	public RadioApp(PastryNode node, int VLCStreamingPort, int bindPort)
 			throws IOException {
-
+		freeStreamers = new FreeStreamers();
 		radioApp = this;
 		// We are only going to use one instance of this application on each
 		// PastryNode
@@ -104,21 +121,23 @@ public class RadioApp implements Application {
 
 		// now we can receive messages
 		this.endpoint.register();
-		
-		//listener instance
+
+		bootstrapNodeID = node.getId();
+
+		// listener instance
 		listeners = new Listeners();
-		
+
 		livenessChecker = new CheckLIveness();
 		if (ancestors == null) {
 			ancestors = new Ancestors();
 		}
-		
-		//initialize the ancestor of bootstrap node as nill
-		if(RadioNode.isBootStrapNode){
+
+		// initialize the ancestor of bootstrap node as nill
+		if (RadioNode.isBootStrapNode) {
 			ancestors.initAncestors(new Vector<NodeHandle>());
+			freeStreamers.addNode(node.getLocalNodeHandle(), 0);
 		}
-		
-		freeStreamers = new FreeStreamers();
+
 		InetAddress localhost = InetAddress.getLocalHost();
 		if (localhost.isLoopbackAddress()) {
 			Socket s;
@@ -140,7 +159,7 @@ public class RadioApp implements Application {
 
 	@Override
 	public void deliver(Id id, Message msg) {
-		
+
 		if (msg instanceof SyncMessage) {
 			SyncMessage synMsg = (SyncMessage) msg;
 			System.out.println("Got message " + synMsg.getType());
@@ -150,7 +169,8 @@ public class RadioApp implements Application {
 				Radio.logger.log(Level.INFO,
 						"Stream_Request from " + synMsg.getHandle());
 				if (hasStream
-						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER  && !ancestors.isAncestor(synMsg.getHandle())) {
+						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER
+						&& !ancestors.isAncestor(synMsg.getHandle())) {
 
 					/*
 					 * Prepare and send stream offer
@@ -160,6 +180,7 @@ public class RadioApp implements Application {
 					reply.setHandle(endpoint.getLocalNodeHandle());
 					reply.setVLCPort(VLCStreamingPort);
 					reply.setType(SyncMessage.Type.STREAM_OFFER);
+					reply.setBootstrapNodeID(bootstrapNodeID);
 					replyMessage(synMsg, reply);
 					Radio.logger.log(Level.INFO,
 							"Offering_to " + synMsg.getHandle());
@@ -191,6 +212,7 @@ public class RadioApp implements Application {
 					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle()
 							.toString());
 					setStream(VLCServerStream);
+					bootstrapNodeID = synMsg.getBootstrapNodeID();
 
 					/*
 					 * Prepare and send stream acceptance
@@ -199,16 +221,28 @@ public class RadioApp implements Application {
 					reply.setIP(LocalIPAddress);
 					reply.setHandle(endpoint.getLocalNodeHandle());
 					reply.setType(SyncMessage.Type.STREAM_ACCEPT);
+
 					replyMessage(synMsg, reply);
+
 					Radio.logger.log(Level.INFO,
 							"Accepting " + synMsg.getHandle());
 					System.out.println("------------Accepting stream from "
 							+ synMsg.getHandle());
+					
+					// Sending message to bootstrap to be recognized as free node
+					StreamUpdateMessage uMsg = new StreamUpdateMessage();
+					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FREE);
+					uMsg.setLevel(ancestors.getLevel());
+					uMsg.setNode(node.getLocalNodeHandle());
+					endpoint.route(bootstrapNodeID, uMsg, null);
+					
+					
 					ServerFound = true;
 					setServerAlive(true);
 					lastCheckedServer = 0;
 					rowOffset = 0;
-					serverLatency  = 0;
+					serverLatency = 0;
+					attempt = 0;
 					checkDelay(VLCStreamingServer);
 				}
 				break;
@@ -220,18 +254,12 @@ public class RadioApp implements Application {
 				System.out.println("-----------Streaming to "
 						+ synMsg.getHandle());
 
-				// Sending message to bootstrap to be recognized as free node
-				StreamUpdateMessage uMsg = new StreamUpdateMessage();
-				uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FREE);
-				uMsg.setLevel(ancestors.getLevel());
-				uMsg.setNode(node.getLocalNodeHandle());
-				// TODO send this message to bootstrap
-				// Problem to find bootstrap node id
-				
+
 				/*
 				 * Prepare and send ancestor list to the child
-				 */ 
-				Radio.logger.log(Level.INFO,"Sending ancestor list to" + synMsg.getHandle());
+				 */
+				Radio.logger.log(Level.INFO, "Sending ancestor list to"
+						+ synMsg.getHandle());
 				AncestorMessage ancMsg = new AncestorMessage(ancestors,
 						node.getLocalNodeHandle(), serverLatency);
 				replyMessage(synMsg, ancMsg);
@@ -248,29 +276,51 @@ public class RadioApp implements Application {
 				}
 			case SEND_STREAM:
 				if (RadioNode.isBootStrapNode) {
+					NodeHandle freeNode = freeStreamers.getFreeStreamer(synMsg
+							.getAttempt());
 					SyncMessage reply = new SyncMessage();
-					reply.setHandle(freeStreamers.getFreeStreamer(((SyncMessage) msg).getAttempt()));
+					reply.setHandle(freeNode);
 					reply.setType(SyncMessage.Type.FREE_STREAM);
 					replyMessage(synMsg, reply);
+					Radio.logger.log(Level.INFO, "Sending Free node "
+							+ freeNode + " to " + synMsg.getHandle());
 				}
 				break;
 			case FREE_STREAM:
-				/*
-				 *  @Sahu : 
-				 *  What to do with free node
-				 *  When to ask for SEND_STREAM message
-				 *  When the node has full and free slots
-				 */
+
+				// Send request to the node replied by the bootstrap server
+				if (validateCandidateServer(synMsg.getHandle())) {
+					SyncMessage msgRequest = new SyncMessage();
+					msgRequest.setIP(getLocalIP());
+					msgRequest.setType(SyncMessage.Type.STREAM_REQUEST);
+					msgRequest.setHandle(endpoint.getLocalNodeHandle());
+					Radio.logger.log(Level.INFO,
+							"Got Free node " + synMsg.getHandle()
+									+ " from bootstrap.");
+					Radio.logger.log(Level.INFO,
+							"Sending Request to " + synMsg.getHandle());
+
+					System.out.println("Sending request for stream to "
+							+ synMsg.getHandle());
+					sendMessage(synMsg.getHandle().getId(), msg);
+				} else
+					try {
+						sendStreamRequest();
+					} catch (Exception e) {
+						Radio.logger.log(Level.SEVERE, e.getMessage());
+						e.printStackTrace();
+					}
 				break;
+
 			default:
 				break;
 			}
 		} else if (msg instanceof HeartBeat) {
-			HeartBeat hb = (HeartBeat)msg;
-			if(hb.type == HeartBeat.Type.ALIVE){
+			HeartBeat hb = (HeartBeat) msg;
+			if (hb.type == HeartBeat.Type.ALIVE) {
 				setServerAlive(true);
-			}else if(hb.type == HeartBeat.Type.DYING){
-				Radio.logger.log(Level.INFO,"Server leaving..");
+			} else if (hb.type == HeartBeat.Type.DYING) {
+				Radio.logger.log(Level.INFO, "Server leaving..");
 				setUpServerSearch();
 				try {
 					sendStreamRequest();
@@ -279,45 +329,47 @@ public class RadioApp implements Application {
 					e.printStackTrace();
 				}
 			}
-		}
-		else if(msg instanceof StreamUpdateMessage){
+		} else if (msg instanceof StreamUpdateMessage) {
 			StreamUpdateMessage uMsg = (StreamUpdateMessage) msg;
-			switch (uMsg.info){
-				case STREAM_FREE:
-					freeStreamers.addNode(uMsg.getNode(),uMsg.getLevel());
-					break;
-				case STREAM_FULL: 
-					freeStreamers.removeNode(uMsg.getNode(),uMsg.getLevel());
-					break;
-				default:
-					break;
+			switch (uMsg.info) {
+			case STREAM_FREE:
+				freeStreamers.addNode(uMsg.getNode(), uMsg.getLevel());
+				break;
+			case STREAM_FULL:
+				freeStreamers.removeNode(uMsg.getNode(), uMsg.getLevel());
+				break;
+			default:
+				break;
 			}
-		}
-		else if (msg instanceof AncestorMessage){
+		} else if (msg instanceof AncestorMessage) {
 			Radio.logger.log(Level.INFO, "Ancestor List Received");
-			AncestorMessage ancMsg = (AncestorMessage)msg;
+			AncestorMessage ancMsg = (AncestorMessage) msg;
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
 			serverLatency += ancMsg.getDelay();
-		}else if(msg instanceof PingPong){
-			PingPong pingpong = (PingPong)msg;
-			if(pingpong.getType() == PingPong.Type.PING){
-				Radio.logger.log(Level.INFO,"Ping message received from " + pingpong.getHandle() + "at "+ PongTime);
-				PingPong pong = new PingPong(PingPong.Type.PONG,node.getLocalNodeHandle());
-				endpoint.route(null, pong,pingpong.getHandle());
-				Radio.logger.log(Level.INFO,"Pong message sent to " + pingpong.getHandle());
-			}
-			else if(pingpong.getType() == PingPong.Type.PONG){
-				PongTime = endpoint.getEnvironment().getTimeSource().currentTimeMillis();
-				serverLatency += (PongTime - PingTime)/2;
-				Radio.logger.log(Level.INFO,"Pong message received at " + PongTime);
-				Radio.logger.log(Level.INFO, "End to end delay "+serverLatency);
+		} else if (msg instanceof PingPong) {
+			PingPong pingpong = (PingPong) msg;
+			if (pingpong.getType() == PingPong.Type.PING) {
+				Radio.logger.log(Level.INFO, "Ping message received from "
+						+ pingpong.getHandle() + "at " + PongTime);
+				PingPong pong = new PingPong(PingPong.Type.PONG,
+						node.getLocalNodeHandle());
+				endpoint.route(null, pong, pingpong.getHandle());
+				Radio.logger.log(Level.INFO,
+						"Pong message sent to " + pingpong.getHandle());
+			} else if (pingpong.getType() == PingPong.Type.PONG) {
+				PongTime = endpoint.getEnvironment().getTimeSource()
+						.currentTimeMillis();
+				serverLatency += (PongTime - PingTime) / 2;
+				Radio.logger.log(Level.INFO, "Pong message received at "
+						+ PongTime);
+				Radio.logger.log(Level.INFO, "End to end delay "
+						+ serverLatency);
 			}
 		}
 
 	}
-	
-	
+
 	@Override
 	public boolean forward(RouteMessage arg0) {
 		return true;
@@ -367,77 +419,81 @@ public class RadioApp implements Application {
 
 		if (!RadioNode.isBootStrapNode && !ServerFound && !isAlreadySearching) {
 			isAlreadySearching = true;
+
+
 			NodeHandle candidateServer = getCandiadteServer();
-			if(candidateServer!=null){
-				if(validateCandidateServer(candidateServer)){
+
+			if (candidateServer != null) {
+				if (validateCandidateServer(candidateServer)) {
 					SyncMessage msg = new SyncMessage();
 					msg.setIP(getLocalIP());
 					msg.setType(SyncMessage.Type.STREAM_REQUEST);
 					msg.setHandle(endpoint.getLocalNodeHandle());
-					Radio.logger.log(Level.INFO, "Sending Request to " + candidateServer);
-					System.out.println("Sending request for stream to " + candidateServer);
+					Radio.logger.log(Level.INFO, "Sending Request to "
+							+ candidateServer);
+					System.out.println("Sending request for stream to "
+							+ candidateServer);
 					sendMessage(candidateServer.getId(), msg);
-				}
-				else{
+				} else {
 					isAlreadySearching = false;
 					sendStreamRequest();
 				}
-			}
-			else{
-				//TODO 
+			} else {
+				SyncMessage msg = new SyncMessage();
+				msg.setType(SyncMessage.Type.SEND_STREAM);
+				msg.setHandle(endpoint.getLocalNodeHandle());
+				msg.setAttempt(attempt);
+				endpoint.route(bootstrapNodeID, msg, null);
+				attempt++;
 			}
 			isAlreadySearching = false;
 		}
 	}
-	
-	private boolean validateCandidateServer(NodeHandle node){
+
+	private boolean validateCandidateServer(NodeHandle node) {
 		/*
-		 * Conditions to be satisfied 
-		 * 1. should not be same as the node itself 
+		 * Conditions to be satisfied 1. should not be same as the node itself
 		 * 2. Should not be one of the receiving clients
 		 */
-		return (node != this.node.getLocalNodeHandle() && !listeners.getListeningClients().contains(node));
+		return (node != this.node.getLocalNodeHandle() && !listeners
+				.getListeningClients().contains(node));
 	}
-	
-	public NodeHandle getCandiadteServer(){
-		try{
-		NodeHandle candidateServer = null;
-		if(rowOffset >= MAX_ROW_OFFSET){
-			// TODO get server from bootstrap
-			rowOffset = 0;
-			lastCheckedServer = 0;
-			return getCandiadteServer();
-		}
-		RouteSet row[] = node.getRoutingTable().getRow(node.getRoutingTable().numRows() - rowOffset - 1);
-		if(lastCheckedServer < row.length){
-			System.out.println(lastCheckedServer+" "+row.length);
-			RouteSet entry = row[lastCheckedServer];
-			while(entry==null){
-				lastCheckedServer++;
-				if(lastCheckedServer >= row.length){
-					lastCheckedServer = 0;
-					rowOffset++;
+
+	public NodeHandle getCandiadteServer() {
+		try {
+			NodeHandle candidateServer = null;
+			if (rowOffset >= MAX_ROW_OFFSET) {
+				return null;
+			}
+			RouteSet row[] = node.getRoutingTable().getRow(
+					node.getRoutingTable().numRows() - rowOffset - 1);
+			if (lastCheckedServer < row.length) {
+				System.out.println(lastCheckedServer + " " + row.length);
+				RouteSet entry = row[lastCheckedServer];
+				while (entry == null) {
+					lastCheckedServer++;
+					if (lastCheckedServer >= row.length) {
+						lastCheckedServer = 0;
+						rowOffset++;
+						return getCandiadteServer();
+					} else {
+						entry = row[lastCheckedServer];
+					}
+				}
+				if (!entry.isEmpty())
+					candidateServer = entry.getHandle(0);
+				if (candidateServer == null) {
+					lastCheckedServer++;
 					return getCandiadteServer();
 				}
-				else{
-					entry = row[lastCheckedServer];
-				}
-			}
-			if(!entry.isEmpty())
-				candidateServer = entry.getHandle(0);
-			if(candidateServer == null){
 				lastCheckedServer++;
+				return candidateServer;
+			} else {
+				lastCheckedServer = 0;
+				rowOffset++;
 				return getCandiadteServer();
 			}
-			lastCheckedServer++;
-			return candidateServer;
-		}
-		else{
-			lastCheckedServer = 0;
-			rowOffset++;
-			return getCandiadteServer();
-		}
-		}catch(Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -469,23 +525,26 @@ public class RadioApp implements Application {
 	}
 
 	public void checkDelay(NodeHandle handle) {
-		PingPong ping = new PingPong(PingPong.Type.PING,node.getLocalNodeHandle());
-		PingTime = endpoint.getEnvironment().getTimeSource().currentTimeMillis();
-		Radio.logger.log(Level.INFO,"Send ping to "+handle +" at "+PingTime);
-		endpoint.route(null, ping, handle);		//send message directly to handle
+		PingPong ping = new PingPong(PingPong.Type.PING,
+				node.getLocalNodeHandle());
+		PingTime = endpoint.getEnvironment().getTimeSource()
+				.currentTimeMillis();
+		Radio.logger.log(Level.INFO, "Send ping to " + handle + " at "
+				+ PingTime);
+		endpoint.route(null, ping, handle); // send message directly to handle
 	}
 
 	public String getVLCServerStream() {
 		return VLCServerStream;
 	}
-	
-	public static void close_connection(){
-		if(endpoint != null){
+
+	public static void close_connection() {
+		if (endpoint != null) {
 			Listeners.getListener().sendHeartBeat(HeartBeat.Type.DYING);
 		}
 	}
-	
-	public void setUpServerSearch(){
+
+	public void setUpServerSearch() {
 		hasStream = false;
 		ServerFound = false;
 		setServerAlive(false);
