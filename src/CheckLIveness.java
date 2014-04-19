@@ -51,8 +51,10 @@ public class CheckLIveness extends Thread {
 //					System.out.println("---------Row "+ i +"---------------");
 //					if (rs.length != 0) {
 //						for (RouteSet r : rs) {
+//							System.out.print("Next Entry ");
 //							if (r != null)
-//								System.out.println(r.toString());
+//								System.out.print(r.toString());
+//							System.out.println("");
 //						}
 //					}
 //				}

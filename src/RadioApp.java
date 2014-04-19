@@ -11,6 +11,7 @@ import rice.p2p.commonapi.Message;
 import rice.p2p.commonapi.NodeHandle;
 import rice.p2p.commonapi.RouteMessage;
 import rice.pastry.PastryNode;
+import rice.pastry.routing.RouteSet;
 
 /*
  * pange :
@@ -40,9 +41,12 @@ public class RadioApp implements Application {
 	private int bindport;							//port at which application is bound							
 	
 	public static boolean ServerFound = false;		
-	private int lastCheckedServer;					//clock hand for the last checked server
 	public boolean isAlreadySearching = false;		//true if the node is already searching for a server
 													//prevents from multiple concurrent search attempt
+	private int lastCheckedServer = 0;					//clock hand for the last checked server
+	private int rowOffset = 0;
+	private int MAX_ROW_OFFSET = 3;
+	
 	public static long streamStartedAt = 0;			//streaming start time
 	private String VLCServerStream = "";			//MRL of streaming server
 	public FreeStreamers freeStreamers;
@@ -93,7 +97,6 @@ public class RadioApp implements Application {
 		this.node = node;
 		this.VLCStreamingPort = VLCStreamingPort;
 		this.bindport = bindPort;
-		lastCheckedServer = -RadioNode.getRadioNode().leafSet.ccwSize();
 		// the rest of the initialization code could go here
 
 		// now we can receive messages
@@ -111,6 +114,8 @@ public class RadioApp implements Application {
 		if(RadioNode.isBootStrapNode){
 			ancestors.initAncestors(new Vector<NodeHandle>());
 		}
+		
+		freeStreamers = new FreeStreamers();
 		InetAddress localhost = InetAddress.getLocalHost();
 		if (localhost.isLoopbackAddress()) {
 			Socket s;
@@ -198,6 +203,8 @@ public class RadioApp implements Application {
 							+ synMsg.getHandle());
 					ServerFound = true;
 					setServerAlive(true);
+					lastCheckedServer = 0;
+					rowOffset = 0;
 					checkDelay(VLCStreamingServer);
 				}
 				break;
@@ -313,39 +320,79 @@ public class RadioApp implements Application {
 
 		if (!RadioNode.isBootStrapNode && !ServerFound && !isAlreadySearching) {
 			isAlreadySearching = true;
-
-			/*
-			 * Conditions to be satisfied 1. Within leafset bound. 2. should not
-			 * be same as the node itself 3. Should not be one of the receiving
-			 * clients
-			 */
-
-			if (lastCheckedServer < RadioNode.getRadioNode().leafSet.cwSize()
-					&& RadioNode.getRadioNode().leafSet.get(lastCheckedServer) != RadioNode
-							.getLocalNodeHandle()
-					&& !listeners.getListeningClients().contains(
-							RadioNode.getRadioNode().leafSet
-									.get(lastCheckedServer))) {
-				SyncMessage msg = new SyncMessage();
-				msg.setIP(getLocalIP());
-				msg.setType(SyncMessage.Type.STREAM_REQUEST);
-				msg.setHandle(endpoint.getLocalNodeHandle());
-				NodeHandle nh = RadioNode.getRadioNode().leafSet
-						.get(lastCheckedServer);
-				// use routing table
-				if (nh != null) {
-					Radio.logger.log(Level.INFO, "Sending Request to " + nh);
-					System.out.println("Sending request for stream to " + nh);
-					sendMessage(nh.getId(), msg);
+			NodeHandle candidateServer = getCandiadteServer();
+			if(candidateServer!=null){
+				if(validateCandidateServer(candidateServer)){
+					SyncMessage msg = new SyncMessage();
+					msg.setIP(getLocalIP());
+					msg.setType(SyncMessage.Type.STREAM_REQUEST);
+					msg.setHandle(endpoint.getLocalNodeHandle());
+					Radio.logger.log(Level.INFO, "Sending Request to " + candidateServer);
+					System.out.println("Sending request for stream to " + candidateServer);
+					sendMessage(candidateServer.getId(), msg);
 				}
-				lastCheckedServer++;
-				// select the item
-			} else {
-				lastCheckedServer = -RadioNode.getRadioNode().leafSet.ccwSize();
-				System.out
-						.println("Starting search from begining of the leafSet");
+				else{
+					isAlreadySearching = false;
+					sendStreamRequest();
+				}
+			}
+			else{
+				//TODO 
 			}
 			isAlreadySearching = false;
+		}
+	}
+	
+	private boolean validateCandidateServer(NodeHandle node){
+		/*
+		 * Conditions to be satisfied 
+		 * 1. should not be same as the node itself 
+		 * 2. Should not be one of the receiving clients
+		 */
+		return (node != this.node.getLocalNodeHandle() && !listeners.getListeningClients().contains(node));
+	}
+	
+	public NodeHandle getCandiadteServer(){
+		try{
+		NodeHandle candidateServer = null;
+		if(rowOffset >= MAX_ROW_OFFSET){
+			// TODO get server from bootstrap
+			rowOffset = 0;
+			lastCheckedServer = 0;
+			return getCandiadteServer();
+		}
+		RouteSet row[] = node.getRoutingTable().getRow(node.getRoutingTable().numRows() - rowOffset - 1);
+		if(lastCheckedServer < row.length){
+			System.out.println(lastCheckedServer+" "+row.length);
+			RouteSet entry = row[lastCheckedServer];
+			while(entry==null){
+				lastCheckedServer++;
+				if(lastCheckedServer >= row.length){
+					lastCheckedServer = 0;
+					rowOffset++;
+					return getCandiadteServer();
+				}
+				else{
+					entry = row[lastCheckedServer];
+				}
+			}
+			if(!entry.isEmpty())
+				candidateServer = entry.getHandle(0);
+			if(candidateServer == null){
+				lastCheckedServer++;
+				return getCandiadteServer();
+			}
+			lastCheckedServer++;
+			return candidateServer;
+		}
+		else{
+			lastCheckedServer = 0;
+			rowOffset++;
+			return getCandiadteServer();
+		}
+		}catch(Exception e){
+			e.printStackTrace();
+			return null;
 		}
 	}
 
