@@ -276,6 +276,7 @@ public class RadioApp implements Application {
 			AncestorMessage ancMsg = (AncestorMessage)msg;
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
+			listeners.broadCastAncestor(ancestors,node.getLocalNodeHandle());
 			serverLatency += ancMsg.getDelay();
 		}else if(msg instanceof PingPong){
 			PingPong pingpong = (PingPong)msg;

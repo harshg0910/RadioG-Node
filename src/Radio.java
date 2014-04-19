@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.UnknownHostException;
 import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -40,6 +41,10 @@ import javax.swing.UIManager;
 import logging.LoggingExample;
 import logging.MyFormatter;
 import logging.MyHandler;
+
+import javax.swing.JSlider;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class Radio {
 
@@ -60,6 +65,9 @@ public class Radio {
 	private Handler fileHandler;
 	public static Logger logger = Logger.getLogger(LoggingExample.class.getName());
 	public static long upTime = 0;
+	static final int MAX_VOLUME = 200;
+	static final int MIN_VOLUME = 0;
+	static final int INIT_VOLUME = 100;
 
 	/**
 	 * Launch the application.
@@ -336,13 +344,38 @@ public class Radio {
 		frmRadiog.getContentPane().add(btnNewButton);
 		
 		textMyIP = new JTextField();
-		textMyIP.setBounds(338, 148, 123, 20);
+		textMyIP.setBounds(397, 148, 123, 20);
 		frmRadiog.getContentPane().add(textMyIP);
 		textMyIP.setColumns(10);
-		
+		textMyIP.setText(getUserIP());
 		JLabel lblYourIpAddress = new JLabel("Your IP Address");
-		lblYourIpAddress.setBounds(241, 151, 99, 14);
+		lblYourIpAddress.setBounds(288, 151, 99, 14);
 		frmRadiog.getContentPane().add(lblYourIpAddress);
+		
+		JSlider volumeSlider = new JSlider(JSlider.HORIZONTAL,MIN_VOLUME,MAX_VOLUME,INIT_VOLUME);
+		volumeSlider.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				JSlider source = (JSlider)e.getSource();
+				if (!source.getValueIsAdjusting()) {
+			        int change = (int)source.getValue();
+			        if (change == 0) {
+			            
+			        } else {
+			            Player.setVolume(change);
+			        }
+			    }
+			}
+		});
+		volumeSlider.setMajorTickSpacing(10);
+		volumeSlider.setMinorTickSpacing(1);
+		volumeSlider.setPaintTicks(true);
+		volumeSlider.setPaintLabels(true);
+		volumeSlider.setBounds(397, 173, 123, 23);
+		frmRadiog.getContentPane().add(volumeSlider);
+		
+		JLabel lblVolume = new JLabel("Volume");
+		lblVolume.setBounds(350, 177, 46, 14);
+		frmRadiog.getContentPane().add(lblVolume);
 
 	}
 
@@ -394,5 +427,30 @@ public class Radio {
 		in.close();
 
 		return a.toString();
+	}
+	
+	private String getUserIP(){
+		InetAddress localhost;
+		String ip = "";
+		try {
+				Socket s;
+				s = new Socket("202.141.80.14", 80);
+				localhost = s.getLocalAddress();
+				ip = localhost.getHostAddress();
+				System.out.println(s.getLocalAddress().getHostAddress());
+				s.close();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			logger.log(Level.SEVERE,"Unable to get IP " + e.getMessage());
+			setError("Enter your ip");
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			logger.log(Level.SEVERE,"Unable to get IP " + e.getMessage());
+			setError("Enter your ip");
+			e.printStackTrace();
+		}
+		return ip;
+		
 	}
 }

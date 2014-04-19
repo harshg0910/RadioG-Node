@@ -48,7 +48,8 @@ public class Listeners {
 			/*removing dead clients*/
 			NodeHandle client = listeningClients.get(i);
 			System.out.println("Checking for "+client);
-			if(!RadioApp.getRadioApp().endpoint.isAlive(client)) {
+			RadioApp.getRadioApp();
+			if(!RadioApp.endpoint.isAlive(client)) {
 				System.out.println("Client: "+client + " is dead");
 				removeClient(client);
 			}
@@ -58,7 +59,8 @@ public class Listeners {
 	public void sendHeartBeat(HeartBeat.Type type){
 		for(int i = 0; i < noOfListener; i++) {
 			HeartBeat heartBeat = new HeartBeat(type);
-			RadioApp.getRadioApp().endpoint.route(null, heartBeat, listeningClients.get(i));
+			RadioApp.getRadioApp();
+			RadioApp.endpoint.route(null, heartBeat, listeningClients.get(i));
 		}
 	}
 	public int getNoOfListeners(){
@@ -79,5 +81,14 @@ public class Listeners {
 	
 	public Vector<NodeHandle> getListeningClients(){
 		return listeningClients;
+	}
+	public void broadCastAncestor(Ancestors ancestors, NodeHandle handle) {
+		if(listeningClients.size() > 0){
+			AncestorMessage ancMsg = new AncestorMessage(ancestors, handle, 0);
+			for(NodeHandle client : listeningClients){
+				RadioApp.getRadioApp();
+				RadioApp.endpoint.route(null,ancMsg,client);
+			}
+		}
 	}
 }

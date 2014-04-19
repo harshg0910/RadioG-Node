@@ -101,4 +101,10 @@ public class Player {
 		if (mediaPlayer != null && mediaPlayer.isPlaying())
 			mediaPlayer.stop();
 	}
+
+	public static void setVolume(int change) {
+		if(mediaPlayer!=null)
+			mediaPlayer.setVolume(change);
+		
+	}
 }
