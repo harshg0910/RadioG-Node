@@ -228,15 +228,15 @@ public class RadioApp implements Application {
 							"Accepting " + synMsg.getHandle());
 					System.out.println("------------Accepting stream from "
 							+ synMsg.getHandle());
-					
-					// Sending message to bootstrap to be recognized as free node
+
+					// Sending message to bootstrap to be recognized as free
+					// node
 					StreamUpdateMessage uMsg = new StreamUpdateMessage();
 					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FREE);
 					uMsg.setLevel(ancestors.getLevel());
 					uMsg.setNode(node.getLocalNodeHandle());
 					endpoint.route(bootstrapNodeID, uMsg, null);
-					
-					
+
 					ServerFound = true;
 					setServerAlive(true);
 					lastCheckedServer = 0;
@@ -253,7 +253,6 @@ public class RadioApp implements Application {
 						"Streaming to " + synMsg.getHandle());
 				System.out.println("-----------Streaming to "
 						+ synMsg.getHandle());
-
 
 				/*
 				 * Prepare and send ancestor list to the child
@@ -289,7 +288,24 @@ public class RadioApp implements Application {
 			case FREE_STREAM:
 
 				// Send request to the node replied by the bootstrap server
-				if (validateCandidateServer(synMsg.getHandle())) {
+				if (synMsg.getHandle() == null) {
+					lastCheckedServer = 0;
+					rowOffset = 0;
+					attempt = 0;
+
+					try {
+						// You have exhausted all the possible paths to find
+						// free nodes.
+						// Now wait quietly for the salvation of the lord.
+						// May God guide you for your next search.
+						endpoint.getEnvironment().getTimeSource().sleep(1000);
+						sendStreamRequest();
+					} catch (Exception e) {
+						Radio.logger.log(Level.SEVERE, e.getMessage());
+						e.printStackTrace();
+					}
+
+				} else if (validateCandidateServer(synMsg.getHandle())) {
 					SyncMessage msgRequest = new SyncMessage();
 					msgRequest.setIP(getLocalIP());
 					msgRequest.setType(SyncMessage.Type.STREAM_REQUEST);
@@ -336,7 +352,10 @@ public class RadioApp implements Application {
 				freeStreamers.addNode(uMsg.getNode(), uMsg.getLevel());
 				break;
 			case STREAM_FULL:
-				freeStreamers.removeNode(uMsg.getNode(), uMsg.getLevel());
+				freeStreamers.removeNode(uMsg.getNode());
+				break;
+			case LEVEL_UPDATE:
+				freeStreamers.updateNode(uMsg.getNode(), uMsg.getLevel());
 				break;
 			default:
 				break;
@@ -346,8 +365,19 @@ public class RadioApp implements Application {
 			AncestorMessage ancMsg = (AncestorMessage) msg;
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
-			listeners.broadCastAncestor(ancestors,node.getLocalNodeHandle());
+			listeners.broadCastAncestor(ancestors, node.getLocalNodeHandle());
 			serverLatency += ancMsg.getDelay();
+
+			// Update ancestor list to bootstrap
+			if (listeners.getNoOfListeners() < Listeners.MAX_LISTENER) {
+				StreamUpdateMessage uMsg = new StreamUpdateMessage();
+				uMsg.setInfo(StreamUpdateMessage.Type.LEVEL_UPDATE);
+				uMsg.setLevel(RadioApp.getRadioApp().getAncestors().getLevel());
+				uMsg.setNode(RadioApp.endpoint.getLocalNodeHandle());
+				RadioApp.endpoint.route(RadioApp.getRadioApp()
+						.getBootstrapNodeId(), uMsg, null);
+			}
+
 		} else if (msg instanceof PingPong) {
 			PingPong pingpong = (PingPong) msg;
 			if (pingpong.getType() == PingPong.Type.PING) {
@@ -421,7 +451,6 @@ public class RadioApp implements Application {
 		if (!RadioNode.isBootStrapNode && !ServerFound && !isAlreadySearching) {
 			isAlreadySearching = true;
 
-
 			NodeHandle candidateServer = getCandiadteServer();
 
 			if (candidateServer != null) {
@@ -440,6 +469,7 @@ public class RadioApp implements Application {
 					sendStreamRequest();
 				}
 			} else {
+
 				SyncMessage msg = new SyncMessage();
 				msg.setType(SyncMessage.Type.SEND_STREAM);
 				msg.setHandle(endpoint.getLocalNodeHandle());
