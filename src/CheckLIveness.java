@@ -12,12 +12,12 @@ public class CheckLIveness extends Thread {
 				// if(!RadioNode.isBootStrapeNode &&
 				// !RadioApp.getRadioApp().checkServerLiveness() &&
 				// !RadioApp.getRadioApp().isAlreadySearching){
-				if (!RadioNode.isBootStrapNode
+				if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
 						&& !RadioApp.getRadioApp().isAlreadySearching
 						&& RadioApp.getRadioApp().isServerAlive()) {
 					System.out.println("Server found alive");
 					RadioApp.getRadioApp().setServerAlive(false);
-				} else if (!RadioNode.isBootStrapNode
+				} else if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
 						&& !RadioApp.getRadioApp().isAlreadySearching) {
 					System.out.println("Server dead");
 					RadioApp.getRadioApp().setUpServerSearch();
@@ -26,7 +26,7 @@ public class CheckLIveness extends Thread {
 						RadioApp.getRadioApp().sendStreamRequest();
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
-						Radio.logger.log(Level.SEVERE,e.getMessage());
+						Radio.logger.log(Level.SEVERE, e.getMessage());
 						e.printStackTrace();
 					}
 
@@ -34,29 +34,30 @@ public class CheckLIveness extends Thread {
 				if (Player.mediaPlayer != null) {
 					if (Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Ended
 							|| Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Error) {
-						 Radio.logger.log(Level.SEVERE, "Streaming stopped");
-						 RadioApp.getRadioApp().setStream(
-								RadioApp.getRadioApp().getVLCServerStream());						
+						Radio.logger.log(Level.SEVERE, "Streaming stopped");
+						RadioApp.getRadioApp().setStream(
+								RadioApp.getRadioApp().getVLCServerStream());
 					}
 				}
 				// Listeners.getListener().update();
-//				System.out.println("---------Routing Table---------------");
-//				for (int i = 0; i < RadioNode.node.getRoutingTable().numRows(); i++) {
-//					RouteSet rs[] = RadioNode.node.getRoutingTable().getRow(i);
-//					System.out.println("---------Row "+ i +"---------------");
-//					if (rs.length != 0) {
-//						for (RouteSet r : rs) {
-//							System.out.print("Next Entry ");
-//							if (r != null)
-//								System.out.print(r.toString());
-//							System.out.println("");
-//						}
-//					}
-//				}
-//				System.out.println("---------Leaf Nodes---------------");
-//				for(NodeHandle nh : RadioNode.node.getLeafSet()){
-//					System.out.println(nh.toString());
-//				}
+				// System.out.println("---------Routing Table---------------");
+				// for (int i = 0; i <
+				// RadioNode.node.getRoutingTable().numRows(); i++) {
+				// RouteSet rs[] = RadioNode.node.getRoutingTable().getRow(i);
+				// System.out.println("---------Row "+ i +"---------------");
+				// if (rs.length != 0) {
+				// for (RouteSet r : rs) {
+				// System.out.print("Next Entry ");
+				// if (r != null)
+				// System.out.print(r.toString());
+				// System.out.println("");
+				// }
+				// }
+				// }
+				// System.out.println("---------Leaf Nodes---------------");
+				// for(NodeHandle nh : RadioNode.node.getLeafSet()){
+				// System.out.println(nh.toString());
+				// }
 
 				Listeners.getListener().sendHeartBeat(HeartBeat.Type.ALIVE);
 
@@ -69,7 +70,7 @@ public class CheckLIveness extends Thread {
 				}
 			}
 		} catch (Exception e) {
-			Radio.logger.log(Level.SEVERE,e.getMessage());
+			Radio.logger.log(Level.SEVERE, e.getMessage());
 			e.printStackTrace();
 		}
 

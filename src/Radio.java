@@ -129,25 +129,27 @@ public class Radio {
 
 		final JRadioButton rdbtnBootstrapNode = new JRadioButton(
 				"Bootstrap Node");
+		rdbtnBootstrapNode.setEnabled(false);
 		final JRadioButton rdbtnIssurrogate = new JRadioButton("isSurrogate");
+		rdbtnIssurrogate.setEnabled(false);
 		
 		
 		// Finding bootstrap node from url
 
-		txtBootstrapIp.setText("172.16.27.42");
-		txtBootstrapPort.setText("5770");
-//		try {
-////			String[] boot = getUrlSource(
-////					"http://172.16.27.65/files/RadioGBoot.txt").split(":");
-//			// System.out.println(boot[0]);
-//			// System.out.println(boot[1]);
-////			txtBootstrapIp.setText(boot[0]);
-////			txtBootstrapPort.setText(boot[1]);
-//		} catch (IOException e1) {
-//			// TODO Auto-generated catch block
-//			logger.warning("Cannot fetch bootstap server");
-//			lblError.setText("Cannot fetch bootstap server.\nPlease enter manually");
-//		}
+//		txtBootstrapIp.setText("172.16.27.42");
+//		txtBootstrapPort.setText("5770");
+		try {
+			String[] boot = getUrlSource(
+					"http://kolong.iitg.ernet.in/stud/gymkhana/intranet/RadioG/RadioGBoot.txt").split(":");
+			 System.out.println(boot[0]);
+			 System.out.println(boot[1]);
+			txtBootstrapIp.setText(boot[0]);
+			txtBootstrapPort.setText(boot[1]);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			logger.warning("Cannot fetch bootstap server");
+			lblError.setText("Cannot fetch bootstap server.\nPlease enter manually");
+		}
 
 		final JButton connect = new JButton("Start");
 		connect.addActionListener(new ActionListener() {
@@ -335,11 +337,13 @@ public class Radio {
 		lblError.setBackground(Color.RED);
 		lblError.setBounds(11, 306, 432, 47);
 		frmRadiog.getContentPane().add(lblError);
+		lblAudioPath.setEnabled(false);
 
 		lblAudioPath.setBounds(243, 48, 218, 20);
 		frmRadiog.getContentPane().add(lblAudioPath);
 
 		JButton btnNewButton = new JButton("Chose Audio File");
+		btnNewButton.setEnabled(false);
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				JFileChooser folder = new JFileChooser();
@@ -404,6 +408,7 @@ public class Radio {
 		frmRadiog.getContentPane().add(curUserCnt);
 		
 		JButton btnStream = new JButton("Stream");
+		btnStream.setEnabled(false);
 		btnStream.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				RadioApp.getRadioApp().setStream(getAudioFilepath());

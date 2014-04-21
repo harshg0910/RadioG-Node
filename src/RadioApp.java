@@ -163,7 +163,7 @@ public class RadioApp implements Application {
 				// Forward the stream if I have one
 				Radio.logger.log(Level.INFO,
 						"Stream_Request from " + synMsg.getHandle());
-				if (!RadioNode.isBootStrapNode && hasStream
+				if (hasStream
 						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER
 						&& !ancestors.isAncestor(synMsg.getHandle())) {
 
@@ -334,7 +334,7 @@ public class RadioApp implements Application {
 			HeartBeat hb = (HeartBeat) msg;
 			if (hb.type == HeartBeat.Type.ALIVE) {
 				setServerAlive(true);
-			} else if (hb.type == HeartBeat.Type.DYING) {
+			} else if (hb.type == HeartBeat.Type.DYING && !RadioNode.isSurrogate) {
 				Radio.logger.log(Level.INFO, "Server leaving..");
 				setUpServerSearch();
 				try {

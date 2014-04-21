@@ -21,6 +21,7 @@ public class RadioNode {
 	Environment env;
 	LeafSet leafSet;
 	public static boolean isBootStrapNode = false;
+	public static boolean isSurrogate = false;
 	private static rice.p2p.commonapi.NodeHandle nodeHandle;
 	public static SimpleTimeSource sts = new SimpleTimeSource();;
 	
@@ -38,7 +39,7 @@ public class RadioNode {
 		RadioNode.isBootStrapNode = isBoostrapNode;
 
 		radioNode = this;
-
+		RadioNode.isSurrogate = isSurrogate;
 		this.env = env;
 		// Generate the NodeIds Randomly
 		NodeIdFactory nidFactory = new RandomNodeIdFactory(env);
@@ -93,7 +94,7 @@ public class RadioNode {
 				Radio.setError("Please choose an audio file");
 			}
 		}
-		if(!isBoostrapNode && !isSurrogate){
+		if(!isBoostrapNode){
 			Radio.logger.log(Level.INFO, "Sendding stream request");
 			app.sendStreamRequest();
 		}

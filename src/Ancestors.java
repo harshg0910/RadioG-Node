@@ -4,7 +4,7 @@ import java.util.logging.Level;
 import rice.p2p.commonapi.NodeHandle;
 
 public class Ancestors {
-	private static Vector<NodeHandle> ancestorList;
+	private static Vector<NodeHandle> ancestorList = null;
 
 	public void addAncetor(NodeHandle node) {
 		if (ancestorList != null) {
@@ -43,7 +43,7 @@ public class Ancestors {
 		if (ancestorList != null) {
 			return ancestorList.contains(handle);
 		}
-		return true;
+		return false;
 	}
 
 	public void printAncestors() {
