@@ -43,7 +43,7 @@ public class FreeStreamers {
 	// When a new node join the network, mark as free
 	public void addNode(NodeHandle n, int level) {
 		queue.add(new FreeNode(n, level));
-		Radio.logger.log(Level.INFO, "Slot Free : " + n);
+		//Radio.logger.log(Level.INFO, "Slot Free : " + n);
 		System.out.println("-------Printing Queue :");
 		for (FreeNode fn : queue) {
 			System.out.println(fn.handle + " Level: " + fn.level);
@@ -66,7 +66,7 @@ public class FreeStreamers {
 				break;
 			}
 		}
-		Radio.logger.log(Level.INFO, "Node Left : " + n);
+//		Radio.logger.log(Level.INFO, "Node Left : " + n);
 		System.out.println("-------Printing Queue :");
 		for (FreeNode fn : queue) {
 			System.out.println(fn.handle + " Level: " + fn.level);

@@ -251,8 +251,8 @@ public class RadioApp implements Application {
 				/*
 				 * Prepare and send ancestor list to the child
 				 */
-				Radio.logger.log(Level.INFO, "Sending ancestor list to"
-						+ synMsg.getHandle());
+//				Radio.logger.log(Level.INFO, "Sending ancestor list to"
+//						+ synMsg.getHandle());
 				AncestorMessage ancMsg = new AncestorMessage(ancestors,
 						node.getLocalNodeHandle(), serverLatency);
 				replyMessage(synMsg, ancMsg);
@@ -275,8 +275,8 @@ public class RadioApp implements Application {
 					reply.setHandle(freeNode);
 					reply.setType(SyncMessage.Type.FREE_STREAM);
 					replyMessage(synMsg, reply);
-					Radio.logger.log(Level.INFO, "Sending Free node "
-							+ freeNode + " to " + synMsg.getHandle());
+//					Radio.logger.log(Level.INFO, "Sending Free node "
+//							+ freeNode + " to " + synMsg.getHandle());
 				}
 				break;
 			case FREE_STREAM:
@@ -359,7 +359,7 @@ public class RadioApp implements Application {
 				break;
 			}
 		} else if (msg instanceof AncestorMessage) {
-			Radio.logger.log(Level.INFO, "Ancestor List Received");
+//			Radio.logger.log(Level.INFO, "Ancestor List Received");
 			AncestorMessage ancMsg = (AncestorMessage) msg;
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
@@ -532,13 +532,6 @@ public class RadioApp implements Application {
 			e.printStackTrace();
 			return null;
 		}
-	}
-
-	public boolean checkServerLiveness() {
-		if (VLCStreamingServer != null && endpoint.isAlive(VLCStreamingServer)) {
-			return true;
-		}
-		return false;
 	}
 
 	public void sendMessage(Id id, Message msg) {

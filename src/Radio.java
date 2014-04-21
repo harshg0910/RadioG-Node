@@ -160,6 +160,7 @@ public class Radio {
 					LogManager.getLogManager().readConfiguration(
 							new FileInputStream("mylogging.properties"));
 				} catch (SecurityException | IOException e1) {
+					Radio.logger.log(Level.SEVERE,e1.getMessage());
 					e1.printStackTrace();
 				}
 				logger.setLevel(Level.FINE);
@@ -172,6 +173,7 @@ public class Radio {
 					// fileHandler.setFilter(new MyFilter());
 					logger.addHandler(fileHandler);
 				} catch (SecurityException | IOException e) {
+					Radio.logger.log(Level.SEVERE,e.getMessage());
 					e.printStackTrace();
 				}
 				

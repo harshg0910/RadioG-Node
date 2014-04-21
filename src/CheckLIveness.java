@@ -26,6 +26,7 @@ public class CheckLIveness extends Thread {
 						RadioApp.getRadioApp().sendStreamRequest();
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
+						Radio.logger.log(Level.SEVERE,e.getMessage());
 						e.printStackTrace();
 					}
 
@@ -63,10 +64,12 @@ public class CheckLIveness extends Thread {
 					Thread.sleep(7000);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
+					Radio.logger.log(Level.SEVERE, e.getMessage());
 					e.printStackTrace();
 				}
 			}
 		} catch (Exception e) {
+			Radio.logger.log(Level.SEVERE,e.getMessage());
 			e.printStackTrace();
 		}
 
