@@ -62,13 +62,14 @@ public class Radio {
 			"C:\\Users\\Abhi\\Desktop\\abc.mp3");
 	private static JTextField textMyIP;
 	private Handler fileHandler;
-	public static Logger logger = Logger.getLogger(LoggingExample.class.getName());
+	public static Logger logger = Logger.getLogger(LoggingExample.class
+			.getName());
 	public static long upTime = 0;
 	static final int MAX_VOLUME = 200;
 	static final int MIN_VOLUME = 0;
 	static final int INIT_VOLUME = 100;
 	JLabel lblTotalUsers = new JLabel("Total User Count");;
-	public static JLabel totalUserCnt = new JLabel("0"); ;
+	public static JLabel totalUserCnt = new JLabel("0");;
 	JLabel currentUserCnt;
 	public static JLabel curUserCnt = new JLabel("0");;
 
@@ -105,14 +106,12 @@ public class Radio {
 	 */
 	private void initialize() {
 		System.out.println("Initializing GUI...");
-		
-		Runtime.getRuntime().addShutdownHook(new Thread()
-		{
-		    @Override
-		    public void run()
-		    {
-		        RadioApp.close_connection();
-		    }
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				RadioApp.close_connection();
+			}
 		});
 		frmRadiog = new JFrame();
 		frmRadiog.setTitle("RadioG");
@@ -132,19 +131,21 @@ public class Radio {
 		rdbtnBootstrapNode.setEnabled(false);
 		final JRadioButton rdbtnIssurrogate = new JRadioButton("isSurrogate");
 		rdbtnIssurrogate.setEnabled(false);
-		
-		
+
 		// Finding bootstrap node from url
 
-//		txtBootstrapIp.setText("172.16.27.42");
-//		txtBootstrapPort.setText("5770");
+		// txtBootstrapIp.setText("172.16.27.42");
+		// txtBootstrapPort.setText("5770");
 		try {
 			String[] boot = getUrlSource(
-					"http://kolong.iitg.ernet.in/stud/gymkhana/intranet/RadioG/RadioGBoot.txt").split(":");
-			 System.out.println(boot[0]);
-			 System.out.println(boot[1]);
-			txtBootstrapIp.setText(boot[0]);
-			txtBootstrapPort.setText(boot[1]);
+					"http://kolong.iitg.ernet.in/stud/gymkhana/intranet/RadioG/RadioGBoot.txt")
+					.split(":");
+			if (boot.length > 1) {
+				System.out.println(boot[0]);
+				System.out.println(boot[1]);
+				txtBootstrapIp.setText(boot[0]);
+				txtBootstrapPort.setText(boot[1]);
+			}
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			logger.warning("Cannot fetch bootstap server");
@@ -155,30 +156,32 @@ public class Radio {
 		connect.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent arg0) {
-				SimpleTimeSource sts =  new SimpleTimeSource();
+				SimpleTimeSource sts = new SimpleTimeSource();
 				upTime = sts.currentTimeMillis();
-				//Logging config
+				// Logging config
 				try {
 					LogManager.getLogManager().readConfiguration(
 							new FileInputStream("mylogging.properties"));
 				} catch (SecurityException | IOException e1) {
-					Radio.logger.log(Level.SEVERE,e1.getMessage());
+					Radio.logger.log(Level.SEVERE, e1.getMessage());
 					e1.printStackTrace();
 				}
 				logger.setLevel(Level.FINE);
 				// adding custom handler
 				logger.addHandler(new MyHandler());
 				try {
-					// FileHandler file name with max size and number of log files limit
-					fileHandler = new FileHandler("logger"+txtBindPort.getText()+".xml");
-					//fileHandler.setFormatter(new MyFormatter());
+					// FileHandler file name with max size and number of log
+					// files limit
+					fileHandler = new FileHandler("logger"
+							+ txtBindPort.getText() + ".xml");
+					// fileHandler.setFormatter(new MyFormatter());
 					// fileHandler.setFilter(new MyFilter());
 					logger.addHandler(fileHandler);
 				} catch (SecurityException | IOException e) {
-					Radio.logger.log(Level.SEVERE,e.getMessage());
+					Radio.logger.log(Level.SEVERE, e.getMessage());
 					e.printStackTrace();
 				}
-				
+
 				// Loads pastry settings
 				System.out.println("Starting the system...");
 				Environment env = new Environment("freepastry");
@@ -198,22 +201,23 @@ public class Radio {
 					int bindPort = Integer.parseInt(txtBindPort.getText());
 					final String input = txtBootstrapIp.getText();
 
-					if(rdbtnIssurrogate.isSelected()){
-						isSurrogate =true;
+					if (rdbtnIssurrogate.isSelected()) {
+						isSurrogate = true;
 					}
 
 					if (!rdbtnBootstrapNode.isSelected()) {
 						// System.out.println("Type bootstrap port : ");
-						logger.log(Level.FINE,"Started as client node");
+						logger.log(Level.FINE, "Started as client node");
 						PORT = Integer.parseInt(txtBootstrapPort.getText());
-						logger.config("Bootstrap IP "+input);
-						logger.config("Bootstrap port "+PORT);
+						logger.config("Bootstrap IP " + input);
+						logger.config("Bootstrap port " + PORT);
 						address = new InetSocketAddress(InetAddress
 								.getByName(input), PORT);
 					} else {
-						logger.log(Level.FINE,"Started as bootstrapped node");
-						InetAddress localhost = InetAddress.getByName(Radio.getMyIP());
-						
+						logger.log(Level.FINE, "Started as bootstrapped node");
+						InetAddress localhost = InetAddress.getByName(Radio
+								.getMyIP());
+
 						if (localhost.isLoopbackAddress()) {
 							Socket s = new Socket("202.141.80.14", 80);
 							localhost = s.getLocalAddress();
@@ -221,19 +225,20 @@ public class Radio {
 									+ s.getLocalAddress().getHostAddress());
 							s.close();
 						}
-						logger.config("Bootstrap IP "+localhost);
-						logger.config("Bootstrap port "+bindPort);
+						logger.config("Bootstrap IP " + localhost);
+						logger.config("Bootstrap port " + bindPort);
 						address = new InetSocketAddress(localhost
 								.getHostAddress(), bindPort);
 						isBoostrapNode = true;
-						
+
 					}
 
-					new RadioNode(bindPort, address, env, isBoostrapNode, isSurrogate);
+					new RadioNode(bindPort, address, env, isBoostrapNode,
+							isSurrogate);
 					connect.setEnabled(false);
 
 				} catch (Exception e) {
-					logger.log(Level.SEVERE,e.getMessage());
+					logger.log(Level.SEVERE, e.getMessage());
 					System.out.println(e.getMessage());
 				}
 
@@ -356,7 +361,7 @@ public class Radio {
 		});
 		btnNewButton.setBounds(121, 44, 112, 23);
 		frmRadiog.getContentPane().add(btnNewButton);
-		
+
 		textMyIP = new JTextField();
 		textMyIP.setBounds(397, 148, 123, 20);
 		frmRadiog.getContentPane().add(textMyIP);
@@ -365,19 +370,20 @@ public class Radio {
 		JLabel lblYourIpAddress = new JLabel("Your IP Address");
 		lblYourIpAddress.setBounds(288, 151, 99, 14);
 		frmRadiog.getContentPane().add(lblYourIpAddress);
-		
-		JSlider volumeSlider = new JSlider(JSlider.HORIZONTAL,MIN_VOLUME,MAX_VOLUME,INIT_VOLUME);
+
+		JSlider volumeSlider = new JSlider(JSlider.HORIZONTAL, MIN_VOLUME,
+				MAX_VOLUME, INIT_VOLUME);
 		volumeSlider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				JSlider source = (JSlider)e.getSource();
+				JSlider source = (JSlider) e.getSource();
 				if (!source.getValueIsAdjusting()) {
-			        int change = (int)source.getValue();
-			        if (change == 0) {
-			            
-			        } else {
-			            Player.setVolume(change);
-			        }
-			    }
+					int change = (int) source.getValue();
+					if (change == 0) {
+
+					} else {
+						Player.setVolume(change);
+					}
+				}
 			}
 		});
 		volumeSlider.setMajorTickSpacing(10);
@@ -386,27 +392,24 @@ public class Radio {
 		volumeSlider.setPaintLabels(true);
 		volumeSlider.setBounds(397, 173, 123, 23);
 		frmRadiog.getContentPane().add(volumeSlider);
-		
+
 		JLabel lblVolume = new JLabel("Volume");
 		lblVolume.setBounds(350, 177, 46, 14);
 		frmRadiog.getContentPane().add(lblVolume);
-		
-		
+
 		lblTotalUsers.setBounds(199, 17, 98, 14);
 		frmRadiog.getContentPane().add(lblTotalUsers);
-		
-		
+
 		totalUserCnt.setBounds(312, 17, 23, 14);
 		frmRadiog.getContentPane().add(totalUserCnt);
-		
+
 		currentUserCnt = new JLabel("Current User Count");
 		currentUserCnt.setBounds(397, 17, 112, 14);
 		frmRadiog.getContentPane().add(currentUserCnt);
-		
-		
+
 		curUserCnt.setBounds(519, 17, 17, 14);
 		frmRadiog.getContentPane().add(curUserCnt);
-		
+
 		JButton btnStream = new JButton("Stream");
 		btnStream.setEnabled(false);
 		btnStream.addActionListener(new ActionListener() {
@@ -416,8 +419,7 @@ public class Radio {
 		});
 		btnStream.setBounds(470, 47, 66, 23);
 		frmRadiog.getContentPane().add(btnStream);
-		
-		
+
 		rdbtnIssurrogate.setBounds(437, 85, 109, 23);
 		frmRadiog.getContentPane().add(rdbtnIssurrogate);
 
@@ -434,20 +436,20 @@ public class Radio {
 	public static void setError(String source) {
 		lblError.setText(source);
 	}
-	
-	public static void setCount(int total, int current){
-		totalUserCnt.setText(""+total);
-		curUserCnt.setText(""+current);
+
+	public static void setCount(int total, int current) {
+		totalUserCnt.setText("" + total);
+		curUserCnt.setText("" + current);
 	}
 
 	public static void settxtBindPort(String source) {
 		txtBindPort.setText(source);
 	}
-	
-	public static String getMyIP(){
+
+	public static String getMyIP() {
 		return textMyIP.getText();
 	}
-	
+
 	public static String getAudioFilepath() {
 		return lblAudioPath.getText();
 	}
@@ -477,29 +479,29 @@ public class Radio {
 
 		return a.toString();
 	}
-	
-	private String getUserIP(){
+
+	private String getUserIP() {
 		InetAddress localhost;
 		String ip = "";
 		try {
-				Socket s;
-				s = new Socket("202.141.80.14", 80);
-				localhost = s.getLocalAddress();
-				ip = localhost.getHostAddress();
-				System.out.println(s.getLocalAddress().getHostAddress());
-				s.close();
+			Socket s;
+			s = new Socket("202.141.80.14", 80);
+			localhost = s.getLocalAddress();
+			ip = localhost.getHostAddress();
+			System.out.println(s.getLocalAddress().getHostAddress());
+			s.close();
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
-			logger.log(Level.SEVERE,"Unable to get IP " + e.getMessage());
+			logger.log(Level.SEVERE, "Unable to get IP " + e.getMessage());
 			setError("Enter your ip");
 			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			logger.log(Level.SEVERE,"Unable to get IP " + e.getMessage());
+			logger.log(Level.SEVERE, "Unable to get IP " + e.getMessage());
 			setError("Enter your ip");
 			e.printStackTrace();
 		}
 		return ip;
-		
+
 	}
 }

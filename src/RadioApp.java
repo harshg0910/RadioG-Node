@@ -1,9 +1,14 @@
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Vector;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 
 import rice.p2p.commonapi.Application;
 import rice.p2p.commonapi.Endpoint;
@@ -34,7 +39,7 @@ public class RadioApp implements Application {
 	private static NodeHandle VLCStreamingServer; // node handle of the
 													// streaming server
 	@SuppressWarnings("unused")
-	private int bindport; // port at which application is bound
+	private static int bindport; // port at which application is bound
 
 	public static boolean ServerFound = false;
 	public boolean isAlreadySearching = false; // true if the node is already
@@ -104,6 +109,7 @@ public class RadioApp implements Application {
 
 	public RadioApp(PastryNode node, int VLCStreamingPort, int bindPort)
 			throws IOException {
+
 		freeStreamers = new FreeStreamers();
 		radioApp = this;
 		// We are only going to use one instance of this application on each
@@ -591,7 +597,9 @@ public class RadioApp implements Application {
 							.getBootstrapNodeId(), uMsg, null);
 				}
 			}
+			LogManager.getLogManager().reset();
 		}
+		sendLogs();
 	}
 
 	public void setUpServerSearch() {
@@ -603,6 +611,42 @@ public class RadioApp implements Application {
 		Player.stopListening();
 	}
 
-
+	public static void sendLogs() {
+        Socket sock;
+		try {
+			sock = new Socket("172.16.27.65", 13267);
+			System.out.println("Connecting...");
+	        OutputStream os = sock.getOutputStream();
+	        send(os);
+	        long end = System.currentTimeMillis();
+	        sock.close();
+		} catch (UnknownHostException e) {
+			System.out.println(e.getMessage());
+		} catch (IOException e) {
+			System.out.println(e.getMessage());
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+        
+		
+	}
+	
+	public static  void send(OutputStream os) throws Exception {
+        // sendfile
+		
+        File myFile = new File("logger"+bindport+".xml");
+        System.out.println(myFile.getAbsolutePath());
+        if(myFile.exists()){
+        byte[] mybytearray = new byte[(int) myFile.length() + 1];
+        FileInputStream fis = new FileInputStream(myFile);
+        BufferedInputStream bis = new BufferedInputStream(fis);
+        bis.read(mybytearray, 0, mybytearray.length);
+        System.out.println("Sending...");
+        os.write(mybytearray, 0, mybytearray.length);
+        os.flush();
+        }else{
+        	System.out.println("Not exists");
+        }
+    }
 	
 }
