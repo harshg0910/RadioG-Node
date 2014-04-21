@@ -4,7 +4,7 @@ import rice.p2p.commonapi.NodeHandle;
 
 public class Listeners {
 	private Vector<NodeHandle> listeningClients = new Vector<>();
-	public static final int MAX_LISTENER = 1;
+	public static final int MAX_LISTENER = 3;
 	private int noOfListener = 0;
 	private static Listeners listeners = null;
 	private Object Lock = new Object();
@@ -81,7 +81,7 @@ public class Listeners {
 	public void sendHeartBeat(HeartBeat.Type type){
 		for(int i = 0; i < noOfListener; i++) {
 			HeartBeat heartBeat = new HeartBeat(type);
-			RadioApp.getRadioApp().endpoint.route(null, heartBeat,
+			RadioApp.endpoint.route(null, heartBeat,
 					listeningClients.get(i));
 		}
 	}

@@ -35,6 +35,8 @@ public class Ancestors {
 
 	@SuppressWarnings("unchecked")
 	public void initAncestors(Vector<NodeHandle> ancestors) {
+		if(ancestorList!=null)
+			ancestorList.removeAllElements();
 		ancestorList = (Vector<NodeHandle>) ancestors.clone();
 	}
 	public  boolean isAncestor(NodeHandle handle){

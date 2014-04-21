@@ -4,8 +4,6 @@ import java.net.Socket;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import javax.xml.bind.Marshaller.Listener;
-
 import rice.p2p.commonapi.Application;
 import rice.p2p.commonapi.Endpoint;
 import rice.p2p.commonapi.Id;
@@ -34,6 +32,7 @@ public class RadioApp implements Application {
 	private int VLCStreamingPort = 7456; // port at which VLC Server will listen
 	private static NodeHandle VLCStreamingServer; // node handle of the
 													// streaming server
+	@SuppressWarnings("unused")
 	private int bindport; // port at which application is bound
 
 	public static boolean ServerFound = false;
@@ -108,14 +107,14 @@ public class RadioApp implements Application {
 		radioApp = this;
 		// We are only going to use one instance of this application on each
 		// PastryNode
-		this.endpoint = node.buildEndpoint(this, "myinstance");
+		RadioApp.endpoint = node.buildEndpoint(this, "myinstance");
 		this.node = node;
 		this.VLCStreamingPort = VLCStreamingPort;
 		this.bindport = bindPort;
 		// the rest of the initialization code could go here
 
 		// now we can receive messages
-		this.endpoint.register();
+		RadioApp.endpoint.register();
 
 		bootstrapNodeID = node.getId();
 
@@ -417,11 +416,14 @@ public class RadioApp implements Application {
 			System.out.println("New node " + handle);
 			totalUserCount++;
 			currentUserCount++;
+			Radio.setCount(totalUserCount, currentUserCount);
 			//change count value in the gui
-		} else {
+			
+		}  {
+			
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
-
+			currentUserCount--;
 			// Bootstrap node will maintain the details of all nodes
 			if (RadioNode.isBootStrapNode)
 				freeStreamers.removeNode(handle);

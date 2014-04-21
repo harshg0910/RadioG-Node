@@ -1,7 +1,5 @@
 import java.util.logging.Level;
 
-import rice.pastry.NodeHandle;
-import rice.pastry.routing.RouteSet;
 import uk.co.caprica.vlcj.binding.internal.libvlc_state_t;
 
 public class CheckLIveness extends Thread {

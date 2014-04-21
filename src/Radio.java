@@ -39,7 +39,6 @@ import java.awt.Color;
 import javax.swing.UIManager;
 
 import logging.LoggingExample;
-import logging.MyFormatter;
 import logging.MyHandler;
 
 import javax.swing.JSlider;
@@ -68,10 +67,10 @@ public class Radio {
 	static final int MAX_VOLUME = 200;
 	static final int MIN_VOLUME = 0;
 	static final int INIT_VOLUME = 100;
-	JLabel lblTotalUsers;
-	public static JLabel totalUserCnt;
+	JLabel lblTotalUsers = new JLabel("Total User Count");;
+	public static JLabel totalUserCnt = new JLabel("0"); ;
 	JLabel currentUserCnt;
-	public static JLabel curUserCnt;
+	public static JLabel curUserCnt = new JLabel("0");;
 
 	/**
 	 * Launch the application.
@@ -168,8 +167,8 @@ public class Radio {
 				logger.addHandler(new MyHandler());
 				try {
 					// FileHandler file name with max size and number of log files limit
-					fileHandler = new FileHandler("logger"+txtBindPort.getText()+".html");
-					fileHandler.setFormatter(new MyFormatter());
+					fileHandler = new FileHandler("logger"+txtBindPort.getText()+".xml");
+					//fileHandler.setFormatter(new MyFormatter());
 					// fileHandler.setFilter(new MyFilter());
 					logger.addHandler(fileHandler);
 				} catch (SecurityException | IOException e) {
@@ -381,11 +380,11 @@ public class Radio {
 		lblVolume.setBounds(350, 177, 46, 14);
 		frmRadiog.getContentPane().add(lblVolume);
 		
-		lblTotalUsers = new JLabel("Total User Count");
+		
 		lblTotalUsers.setBounds(199, 17, 98, 14);
 		frmRadiog.getContentPane().add(lblTotalUsers);
 		
-		totalUserCnt = new JLabel("0");
+		
 		totalUserCnt.setBounds(312, 17, 23, 14);
 		frmRadiog.getContentPane().add(totalUserCnt);
 		
@@ -393,7 +392,7 @@ public class Radio {
 		currentUserCnt.setBounds(397, 17, 112, 14);
 		frmRadiog.getContentPane().add(currentUserCnt);
 		
-		curUserCnt = new JLabel("0");
+		
 		curUserCnt.setBounds(519, 17, 17, 14);
 		frmRadiog.getContentPane().add(curUserCnt);
 
@@ -409,6 +408,11 @@ public class Radio {
 
 	public static void setError(String source) {
 		lblError.setText(source);
+	}
+	
+	public static void setCount(int total, int current){
+		totalUserCnt.setText(""+total);
+		curUserCnt.setText(""+current);
 	}
 
 	public static void settxtBindPort(String source) {
