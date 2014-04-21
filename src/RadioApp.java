@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -162,7 +163,7 @@ public class RadioApp implements Application {
 				// Forward the stream if I have one
 				Radio.logger.log(Level.INFO,
 						"Stream_Request from " + synMsg.getHandle());
-				if (hasStream
+				if (!RadioNode.isBootStrapNode && hasStream
 						&& listeners.getNoOfListeners() < Listeners.MAX_LISTENER
 						&& !ancestors.isAncestor(synMsg.getHandle())) {
 
@@ -609,4 +610,6 @@ public class RadioApp implements Application {
 		Player.stopListening();
 	}
 
+
+	
 }

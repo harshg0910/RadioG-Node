@@ -129,7 +129,7 @@ public class Radio {
 
 		final JRadioButton rdbtnBootstrapNode = new JRadioButton(
 				"Bootstrap Node");
-
+		final JRadioButton rdbtnIssurrogate = new JRadioButton("isSurrogate");
 		
 		
 		// Finding bootstrap node from url
@@ -182,6 +182,7 @@ public class Radio {
 				try {
 
 					boolean isBoostrapNode = false;
+					boolean isSurrogate = false;
 					// the port to begin creating nodes on
 					int PORT = 5009;
 
@@ -192,6 +193,10 @@ public class Radio {
 
 					int bindPort = Integer.parseInt(txtBindPort.getText());
 					final String input = txtBootstrapIp.getText();
+
+					if(rdbtnIssurrogate.isSelected()){
+						isSurrogate =true;
+					}
 
 					if (!rdbtnBootstrapNode.isSelected()) {
 						// System.out.println("Type bootstrap port : ");
@@ -220,7 +225,7 @@ public class Radio {
 						
 					}
 
-					new RadioNode(bindPort, address, env, isBoostrapNode);
+					new RadioNode(bindPort, address, env, isBoostrapNode, isSurrogate);
 					connect.setEnabled(false);
 
 				} catch (Exception e) {
@@ -395,6 +400,19 @@ public class Radio {
 		
 		curUserCnt.setBounds(519, 17, 17, 14);
 		frmRadiog.getContentPane().add(curUserCnt);
+		
+		JButton btnStream = new JButton("Stream");
+		btnStream.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				RadioApp.getRadioApp().setStream(getAudioFilepath());
+			}
+		});
+		btnStream.setBounds(470, 47, 66, 23);
+		frmRadiog.getContentPane().add(btnStream);
+		
+		
+		rdbtnIssurrogate.setBounds(437, 85, 109, 23);
+		frmRadiog.getContentPane().add(rdbtnIssurrogate);
 
 	}
 
@@ -477,6 +495,4 @@ public class Radio {
 		return ip;
 		
 	}
-	
-
 }

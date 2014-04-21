@@ -34,7 +34,7 @@ public class RadioNode {
 	}
 
 	public RadioNode(int bindport, InetSocketAddress bootaddress,
-			Environment env, boolean isBoostrapNode) throws Exception {
+			Environment env, boolean isBoostrapNode, boolean isSurrogate) throws Exception {
 		RadioNode.isBootStrapNode = isBoostrapNode;
 
 		radioNode = this;
@@ -93,7 +93,7 @@ public class RadioNode {
 				Radio.setError("Please choose an audio file");
 			}
 		}
-		if(!isBoostrapNode){
+		if(!isBoostrapNode && !isSurrogate){
 			Radio.logger.log(Level.INFO, "Sendding stream request");
 			app.sendStreamRequest();
 		}
