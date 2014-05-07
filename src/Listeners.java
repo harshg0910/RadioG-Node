@@ -1,17 +1,22 @@
+import java.util.Properties;
 import java.util.Vector;
 
 import rice.p2p.commonapi.NodeHandle;
 
 public class Listeners {
+
+	Properties prop = new Properties();
+    
 	private Vector<NodeHandle> listeningClients = new Vector<>();
-	public static final int MAX_LISTENER = 3;
+	public static final int MAX_LISTENER = Configure.MAX_LISTENERS;
 	private int noOfListener = 0;
 	private static Listeners listeners = null;
 	private Object Lock = new Object();
-	
-	public Listeners(){
+
+	public Listeners() {
 		listeners = this;
 	}
+
 	public void addClient(NodeHandle client) {
 
 		if (!listeningClients.contains(client) && noOfListener < MAX_LISTENER) {
@@ -64,52 +69,54 @@ public class Listeners {
 			}
 		}
 	}
-	
-	public void update(){
-		System.out.println("Updating client list "+listeningClients + " "+noOfListener);
-		for(int i = 0; i < noOfListener; i++) {
-			/*removing dead clients*/
+
+	public void update() {
+		System.out.println("Updating client list " + listeningClients + " "
+				+ noOfListener);
+		for (int i = 0; i < noOfListener; i++) {
+			/* removing dead clients */
 			NodeHandle client = listeningClients.get(i);
-			System.out.println("Checking for "+client);
-			if(!RadioApp.endpoint.isAlive(client)) {
-				System.out.println("Client: "+client + " is dead");
+			System.out.println("Checking for " + client);
+			if (!RadioApp.endpoint.isAlive(client)) {
+				System.out.println("Client: " + client + " is dead");
 				removeClient(client);
 			}
 		}
 	}
-	
-	public void sendHeartBeat(HeartBeat.Type type){
-		for(int i = 0; i < noOfListener; i++) {
+
+	public void sendHeartBeat(HeartBeat.Type type) {
+		for (int i = 0; i < noOfListener; i++) {
 			HeartBeat heartBeat = new HeartBeat(type);
-			RadioApp.endpoint.route(null, heartBeat,
-					listeningClients.get(i));
+			RadioApp.endpoint.route(null, heartBeat, listeningClients.get(i));
 		}
 	}
-	public int getNoOfListeners(){
+
+	public int getNoOfListeners() {
 		return noOfListener;
 	}
-	
-	public static Listeners getListener(){
-		if(listeners == null){
+
+	public static Listeners getListener() {
+		if (listeners == null) {
 			listeners = new Listeners();
 		}
 		return listeners;
-		
+
 	}
-	
-	public boolean isClient(NodeHandle handle){
+
+	public boolean isClient(NodeHandle handle) {
 		return listeningClients.contains(handle);
 	}
-	
-	public Vector<NodeHandle> getListeningClients(){
+
+	public Vector<NodeHandle> getListeningClients() {
 		return listeningClients;
 	}
+
 	public void broadCastAncestor(Ancestors ancestors, NodeHandle handle) {
-		if(listeningClients.size() > 0){
+		if (listeningClients.size() > 0) {
 			AncestorMessage ancMsg = new AncestorMessage(ancestors, handle, 0);
-			for(NodeHandle client : listeningClients){
+			for (NodeHandle client : listeningClients) {
 				RadioApp.getRadioApp();
-				RadioApp.endpoint.route(null,ancMsg,client);
+				RadioApp.endpoint.route(null, ancMsg, client);
 			}
 		}
 	}

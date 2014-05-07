@@ -58,16 +58,13 @@ public class Radio {
 	private static String OsArch = "";
 	private static String JREArch = "";
 	private static JLabel lblError = new JLabel("Message");
-	private static final JTextField lblAudioPath = new JTextField(
-			"C:\\Users\\Abhi\\Desktop\\abc.mp3");
+	private static final JTextField lblAudioPath = new JTextField(Configure.AudioFilePath);
 	private static JTextField textMyIP;
 	private Handler fileHandler;
 	public static Logger logger = Logger.getLogger(LoggingExample.class
 			.getName());
 	public static long upTime = 0;
-	static final int MAX_VOLUME = 200;
-	static final int MIN_VOLUME = 0;
-	static final int INIT_VOLUME = 100;
+
 	JLabel lblTotalUsers = new JLabel("Total User Count");;
 	public static JLabel totalUserCnt = new JLabel("0");;
 	JLabel currentUserCnt;
@@ -128,18 +125,12 @@ public class Radio {
 
 		final JRadioButton rdbtnBootstrapNode = new JRadioButton(
 				"Bootstrap Node");
-		rdbtnBootstrapNode.setEnabled(false);
 		final JRadioButton rdbtnIssurrogate = new JRadioButton("isSurrogate");
-		rdbtnIssurrogate.setEnabled(false);
 
 		// Finding bootstrap node from url
 
-		// txtBootstrapIp.setText("172.16.27.42");
-		// txtBootstrapPort.setText("5770");
 		try {
-			String[] boot = getUrlSource(
-					"http://kolong.iitg.ernet.in/stud/gymkhana/intranet/RadioG/RadioGBoot.txt")
-					.split(":");
+			String[] boot = getUrlSource(Configure.getSetting("BootstrapURL")).split(":");
 			if (boot.length > 1) {
 				System.out.println(boot[0]);
 				System.out.println(boot[1]);
@@ -342,13 +333,11 @@ public class Radio {
 		lblError.setBackground(Color.RED);
 		lblError.setBounds(11, 306, 432, 47);
 		frmRadiog.getContentPane().add(lblError);
-		lblAudioPath.setEnabled(false);
 
 		lblAudioPath.setBounds(243, 48, 218, 20);
 		frmRadiog.getContentPane().add(lblAudioPath);
 
 		JButton btnNewButton = new JButton("Chose Audio File");
-		btnNewButton.setEnabled(false);
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				JFileChooser folder = new JFileChooser();
@@ -371,8 +360,8 @@ public class Radio {
 		lblYourIpAddress.setBounds(288, 151, 99, 14);
 		frmRadiog.getContentPane().add(lblYourIpAddress);
 
-		JSlider volumeSlider = new JSlider(JSlider.HORIZONTAL, MIN_VOLUME,
-				MAX_VOLUME, INIT_VOLUME);
+		JSlider volumeSlider = new JSlider(JSlider.HORIZONTAL, Configure.MIN_VOLUME,
+				Configure.MAX_VOLUME, Configure.INIT_VOLUME);
 		volumeSlider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				JSlider source = (JSlider) e.getSource();
@@ -411,7 +400,6 @@ public class Radio {
 		frmRadiog.getContentPane().add(curUserCnt);
 
 		JButton btnStream = new JButton("Stream");
-		btnStream.setEnabled(false);
 		btnStream.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				RadioApp.getRadioApp().setStream(getAudioFilepath());
@@ -455,7 +443,7 @@ public class Radio {
 	}
 
 	/**
-	 * get system properties
+	 * Get system properties
 	 */
 	private void getSystemProperties() {
 		OS = CheckSystem.getOS();
@@ -485,7 +473,7 @@ public class Radio {
 		String ip = "";
 		try {
 			Socket s;
-			s = new Socket("202.141.80.14", 80);
+			s = new Socket(Configure.getSetting("CheckURL"), 80);
 			localhost = s.getLocalAddress();
 			ip = localhost.getHostAddress();
 			System.out.println(s.getLocalAddress().getHostAddress());
