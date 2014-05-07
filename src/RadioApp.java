@@ -21,22 +21,24 @@ import rice.pastry.routing.RouteSet;
 
 public class RadioApp implements Application {
 
-	private static RadioApp radioApp = null; // singleton instance of RadioApp
-	protected static Endpoint endpoint = null; // Endpoint of this node in the
+	private static RadioApp radioApp = null; 	// Singleton instance of RadioApp
+	
+	protected static Endpoint endpoint = null; 	// Endpoint of this node in the
 												// network
-	public boolean hasStream = false; // flag indicating the availibilty of the
-										// stream
-	private String LocalIPAddress; // local IP address
-	private PastryNode node = null; // pastrynode instance of this node
-	private static boolean isServerAlive = false; // flag to indicate server
+
+	public boolean hasStream = false;			// Flag indicating the availability of the stream	
+	
+	private String LocalIPAddress; 				// Local IP address
+	private PastryNode node = null; 			// Pastrynode instance of this node
+	private static boolean isServerAlive = false; 	// flag to indicate server
 													// aliveness
 	private CheckLIveness livenessChecker;
 	private Listeners listeners;
 	private Object lock = new Object();
 
 	/* Streaming Server Variables */
-	private int VLCStreamingPort = 7456; // port at which VLC Server will listen
-	private static NodeHandle VLCStreamingServer; // node handle of the
+	private int VLCStreamingPort = 7456; 			// port at which VLC Server will listen
+	private static NodeHandle VLCStreamingServer; 	// node handle of the
 													// streaming server
 	@SuppressWarnings("unused")
 	private static int bindport; // port at which application is bound
@@ -66,7 +68,7 @@ public class RadioApp implements Application {
 	private int totalUserCount = 0;
 	private int currentUserCount = 0;
 
-	/*
+	/**
 	 * Returns instance of RadioApp
 	 */
 	public static RadioApp getRadioApp() {
@@ -84,8 +86,10 @@ public class RadioApp implements Application {
 		return bootstrapNodeID;
 	}
 
-	/*
-	 * Start listening from the src and streaming simultaneously
+
+	/***
+	 * Start listening from the src and streaming simultaneously 
+	 * @param src Path to the file or a network stream
 	 */
 	public void setStream(String src) {
 		hasStream = true;
@@ -100,8 +104,8 @@ public class RadioApp implements Application {
 		return LocalIPAddress;
 	}
 
-	/*
-	 * Returns node handle of the streaming server
+	/**
+	 * @return Node handle of the streaming server
 	 */
 	public NodeHandle getStreamingServer() {
 		return VLCStreamingServer;
@@ -117,7 +121,7 @@ public class RadioApp implements Application {
 		RadioApp.endpoint = node.buildEndpoint(this, "myinstance");
 		this.node = node;
 		this.VLCStreamingPort = VLCStreamingPort;
-		this.bindport = bindPort;
+		RadioApp.bindport = bindPort;
 		// the rest of the initialization code could go here
 
 		// now we can receive messages
@@ -496,7 +500,8 @@ public class RadioApp implements Application {
 
 	private boolean validateCandidateServer(NodeHandle node) {
 		/*
-		 * Conditions to be satisfied 1. should not be same as the node itself
+		 * Conditions to be satisfied 
+		 * 1. should not be same as the node itself
 		 * 2. Should not be one of the receiving clients
 		 */
 		return (node != this.node.getLocalNodeHandle() && !listeners
