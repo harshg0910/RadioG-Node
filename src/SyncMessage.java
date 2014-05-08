@@ -1,7 +1,7 @@
 import rice.p2p.commonapi.Id;
 import rice.p2p.commonapi.Message;
 import rice.p2p.commonapi.NodeHandle;
-
+	
 /**
  * Control Messages Implementations
  * @author Abhi
@@ -11,17 +11,49 @@ public class SyncMessage implements Message{
 	private static final long serialVersionUID = 1L;
 	
 	/**
-	 * type of the message
+	 * Type of the message
 	 * @author Abhi
 	 *
 	 */
 	public static enum Type{
+		/**
+		 * This type of message is sent while requesting 
+		 * streams from different candidate parents
+		 */
 		STREAM_REQUEST,
+		
+		/**
+		 * This message is sent in reply of STREAM_REQUEST
+		 * offering the stream to the client 
+		 */
 		STREAM_OFFER,
+		
+		/**
+		 * After getting STREAM_OFFER, client sends this message finalizing 
+		 * the connection. 
+		 */
 		STREAM_ACCEPT,
+		
+		/**
+		 * If on getting STREAM_REQUEST, a node can't share it's stream, it sends
+		 * this message.
+		 */
 		STREAM_REJECT,
-		SEND_STREAM, // This will be sent by a node to bootstrap one to get nodehandle of available stream 
-		FREE_STREAM , // This will contain the nodehandle of the free stream
+		
+		/**
+		 * This will be sent by a node to bootstrap to get nodehandle of free streamers
+		 */
+		SEND_FREE_NODE_INFO,
+		
+		/**
+		 * This is reply to SEND_FREE_NODE_INFO request with the nodehandle 
+		 * of the free node 
+		 */
+		FREE_NODE_INFO ,
+		
+		/**
+		 * This message is sent by a client to its parent while leaving the network
+		 */
 		CLIENT_DYING
 	}
 	

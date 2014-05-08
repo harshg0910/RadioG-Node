@@ -21,50 +21,117 @@ import rice.pastry.routing.RouteSet;
 
 public class RadioApp implements Application {
 
-	private static RadioApp radioApp = null; // Singleton instance of RadioApp
+	/**
+	 * Singleton instance of RadioApp
+	 */
+	private static RadioApp radioApp = null;
 
-	protected static Endpoint endpoint = null; // Endpoint of this node in the
-												// network
+	/**
+	 * Endpoint of this node in the network.
+	 */
+	protected static Endpoint endpoint = null;
 
-	public boolean hasStream = false; // Flag indicating the availability of the
-										// stream
+	/**
+	 * Flag indication the availability of the parent stream
+	 */
+	public boolean hasStream = false;
 
-	private String LocalIPAddress; // Local IP address
-	private PastryNode node = null; // Pastrynode instance of this node
-	private static boolean isServerAlive = false; // flag to indicate server
-													// aliveness
+	/**
+	 * Local IP Address of the system
+	 */
+	private String LocalIPAddress;
+
+	/**
+	 * PastryNode instance of for node
+	 */
+	private PastryNode node = null;
+
+	/**
+	 * Flag to indicate whether the parent is alive
+	 */
+	private static boolean isServerAlive = false;
+
 	private CheckLIveness livenessChecker;
 	private Listeners listeners;
 	private Object lock = new Object();
 
 	/* Streaming Server Variables */
-	private int VLCStreamingPort = 7456; // port at which VLC Server will listen
-	private static NodeHandle VLCStreamingServer; // node handle of the
-													// streaming server
+
+	/**
+	 * Port at which VLC will stream
+	 */
+	private int VLCStreamingPort = 7456;
+
+	/**
+	 * Node handle of the parent from which this node is getting the stream
+	 */
+	private static NodeHandle VLCStreamingServer;
+
 	@SuppressWarnings("unused")
-	private static int bindport; // port at which application is bound
+	/**
+	 * Port at which application is bound
+	 */
+	private static int bindport;
 
 	public static boolean ServerFound = false;
-	public boolean isAlreadySearching = false; // true if the node is already
-												// searching for a server
-												// prevents from multiple
-												// concurrent search attempt
-	private int lastCheckedServer = 0; // clock hand for the last checked server
+
+	/**
+	 * True if the node is already searching for a server. It prevents from
+	 * multiple concurrent search attempt.
+	 */
+	public boolean isAlreadySearching = false;
+
+	/**
+	 * Clock hand for the last checked server
+	 */
+	private int lastCheckedServer = 0;
+	
+	/**
+	 * Current row of the routing table 
+	 */
 	private int rowOffset = 0;
+	
+	/**
+	 * Maximum number of rows to be checked
+	 */
 	private int MAX_ROW_OFFSET = 3;
 
-	public static long streamStartedAt = 0; // streaming start time
-	private String VLCServerStream = ""; // MRL of streaming server
+	/**
+	 * Streaming start time
+	 */
+	public static long streamStartedAt = 0;
+
+	/**
+	 * URL of streaming parent. It is of the form of mmsh://IP:Port
+	 */
+	private String VLCServerStream = "";
+
+	/**
+	 * Data structure used by bootstrap to maintain free nodes
+	 */
 	public FreeStreamers freeStreamers;
 
-	private static Ancestors ancestors; // Ancestors of the node in streaming
-										// tree
+	/**
+	 * Ancestors of the node in the streaming tree
+	 */
+	private static Ancestors ancestors;
+
+	
 	private long serverLatency = 0; // server's latency
 	private long PingTime = 0;
 	private long PongTime = 0;
 
+	/**
+	 * ID of the bootstrap node
+	 */
 	private static Id bootstrapNodeID = null;
-	private short attempt = 0; // to get attempt-th free node from bootstrap
+
+	/**
+	 * To get attempt-th free node from bootstrap when client fails to get
+	 * stream from all entries from routing table and attempt-1 nodes sent by
+	 * bootstrap
+	 */
+	private short attempt = 0;
 
 	private int totalUserCount = 0;
 	private int currentUserCount = 0;
@@ -79,6 +146,10 @@ public class RadioApp implements Application {
 		return null;
 	}
 
+	/**
+	 * 
+	 * @return - The ancestor list
+	 */
 	public Ancestors getAncestors() {
 		return ancestors;
 	}
@@ -119,6 +190,7 @@ public class RadioApp implements Application {
 	 * @param node
 	 *            - Instance of the local pastry node
 	 * @param VLCStreamingPort
+	 *            - Port at which VLC will start streaming
 	 * @param bindPort
 	 *            - Port at which application binds
 	 * @throws IOException
@@ -134,7 +206,6 @@ public class RadioApp implements Application {
 		this.node = node;
 		this.VLCStreamingPort = VLCStreamingPort;
 		RadioApp.bindport = bindPort;
-		// the rest of the initialization code could go here
 
 		// now we can receive messages
 		RadioApp.endpoint.register();
@@ -156,6 +227,9 @@ public class RadioApp implements Application {
 		}
 
 		InetAddress localhost = InetAddress.getLocalHost();
+		
+		// This returns the IP address according to the packets received by 
+		// external URL
 		if (localhost.isLoopbackAddress()) {
 			Socket s;
 			s = new Socket(Configure.getSetting("CheckURL"), 80);
@@ -164,7 +238,6 @@ public class RadioApp implements Application {
 			s.close();
 		}
 		LocalIPAddress = localhost.getHostAddress();
-
 	}
 
 	/**
@@ -205,7 +278,7 @@ public class RadioApp implements Application {
 				} else {
 
 					/*
-					 * prepare and send stream rejection
+					 * Prepare and send stream rejection
 					 */
 					SyncMessage reply = new SyncMessage();
 					reply.setIP(LocalIPAddress);
@@ -222,9 +295,9 @@ public class RadioApp implements Application {
 
 			case STREAM_OFFER:
 				if (!ServerFound) {
-
+					// prepare streaming url
 					VLCServerStream = "mmsh://" + synMsg.getIP() + ":"
-							+ synMsg.getVLCPort(); // prepare streaming url
+							+ synMsg.getVLCPort(); 
 					VLCStreamingServer = synMsg.getHandle();
 					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle()
 							.toString());
@@ -254,6 +327,7 @@ public class RadioApp implements Application {
 					uMsg.setNode(node.getLocalNodeHandle());
 					endpoint.route(bootstrapNodeID, uMsg, null);
 
+					// Set variables
 					ServerFound = true;
 					setServerAlive(true);
 					lastCheckedServer = 0;
@@ -274,6 +348,7 @@ public class RadioApp implements Application {
 				/*
 				 * Prepare and send ancestor list to the child
 				 */
+				
 				// Radio.logger.log(Level.INFO, "Sending ancestor list to"
 				// + synMsg.getHandle());
 				AncestorMessage ancMsg = new AncestorMessage(ancestors,
@@ -290,7 +365,7 @@ public class RadioApp implements Application {
 					Radio.logger.log(Level.SEVERE, e.getMessage());
 					e.printStackTrace();
 				}
-			case SEND_STREAM:
+			case SEND_FREE_NODE_INFO:
 				/*
 				 * send free node to requester
 				 */
@@ -299,13 +374,13 @@ public class RadioApp implements Application {
 							.getAttempt());
 					SyncMessage reply = new SyncMessage();
 					reply.setHandle(freeNode);
-					reply.setType(SyncMessage.Type.FREE_STREAM);
+					reply.setType(SyncMessage.Type.FREE_NODE_INFO);
 					replyMessage(synMsg, reply);
 					// Radio.logger.log(Level.INFO, "Sending Free node "
 					// + freeNode + " to " + synMsg.getHandle());
 				}
 				break;
-			case FREE_STREAM:
+			case FREE_NODE_INFO:
 
 				// Send request to the node replied by the bootstrap server
 				if (synMsg.getHandle() == null) {
@@ -327,7 +402,7 @@ public class RadioApp implements Application {
 
 				} else if (validateCandidateServer(synMsg.getHandle())) {
 					/*
-					 * send STREAM_REQUEST to the received candidate parent
+					 * Send STREAM_REQUEST to the received candidate parent
 					 */
 					SyncMessage msgRequest = new SyncMessage();
 					msgRequest.setIP(getLocalIP());
@@ -450,7 +525,7 @@ public class RadioApp implements Application {
 			// change count value in the gui
 
 		}
-		{
+		else{
 
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
@@ -508,9 +583,11 @@ public class RadioApp implements Application {
 					sendStreamRequest();
 				}
 			} else {
-
+				// We didn't get the stream using raouting table
+				// Asking bootstrap for free node
+				
 				SyncMessage msg = new SyncMessage();
-				msg.setType(SyncMessage.Type.SEND_STREAM);
+				msg.setType(SyncMessage.Type.SEND_FREE_NODE_INFO);
 				msg.setHandle(endpoint.getLocalNodeHandle());
 				msg.setAttempt(attempt);
 				endpoint.route(bootstrapNodeID, msg, null);
@@ -520,28 +597,31 @@ public class RadioApp implements Application {
 		}
 	}
 
+	/**
+	 * Conditions to be satisfied 1. should not be same as the node itself
+	 * 2. Should not be one of the receiving clients
+	 */
 	private boolean validateCandidateServer(NodeHandle node) {
-		/*
-		 * Conditions to be satisfied 1. should not be same as the node itself
-		 * 2. Should not be one of the receiving clients
-		 */
 		return (node != this.node.getLocalNodeHandle() && !listeners
 				.getListeningClients().contains(node));
 	}
 
 	/**
-	 * iterate last 3 rows of routing table to get a candidate parent
+	 * Iterate last MAX_ROW_OFFSET  of routing table to get a candidate parent
 	 * 
-	 * @return
+	 * @return NodeHandle of the candidate node
 	 */
 	public NodeHandle getCandiadteServer() {
 		try {
 			NodeHandle candidateServer = null;
+			
 			if (rowOffset >= MAX_ROW_OFFSET) {
+				// Searched through routng table
 				return null;
 			}
 			RouteSet row[] = node.getRoutingTable().getRow(
 					node.getRoutingTable().numRows() - rowOffset - 1);
+			
 			if (lastCheckedServer < row.length) {
 				System.out.println(lastCheckedServer + " " + row.length);
 				RouteSet entry = row[lastCheckedServer];
@@ -651,7 +731,7 @@ public class RadioApp implements Application {
 	}
 
 	/**
-	 * sends the log files to the server at the address and port configured in
+	 * Sends the log files to the server at the address and port configured in
 	 * config.param
 	 */
 	public static void sendLogs() {
@@ -673,7 +753,12 @@ public class RadioApp implements Application {
 		}
 
 	}
-	
+
+	/**
+	 * Used by sendLogs as a helper function
+	 * @param os - Output Stream
+	 * @throws Exception
+	 */
 	public static void send(OutputStream os) throws Exception {
 		File myFile = new File("logger" + bindport + ".xml");
 		System.out.println(myFile.getAbsolutePath());
