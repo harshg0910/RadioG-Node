@@ -24,26 +24,30 @@ public class RadioNode {
 	public static boolean isSurrogate = false;
 	private static rice.p2p.commonapi.NodeHandle nodeHandle;
 	public static SimpleTimeSource sts = new SimpleTimeSource();;
-	
-	
-	
+
 	public static RadioNode getRadioNode() {
 		if (radioNode != null) {
 			return radioNode;
 		}
 		return null;
 	}
+
 	/**
 	 * Starts a pastry node and binds it to the application
-	 * @param bindport - Application bind port
-	 * @param bootaddress - Bootstrap node's address
-	 * @param env - refer Pastry Enviornment
-	 * @param isBoostrapNode  
+	 * 
+	 * @param bindport
+	 *            - Application bind port
+	 * @param bootaddress
+	 *            - Bootstrap node's address
+	 * @param env
+	 *            - refer Pastry Enviornment
+	 * @param isBoostrapNode
 	 * @param isSurrogate
 	 * @throws Exception
 	 */
 	public RadioNode(int bindport, InetSocketAddress bootaddress,
-			Environment env, boolean isBoostrapNode, boolean isSurrogate) throws Exception {
+			Environment env, boolean isBoostrapNode, boolean isSurrogate)
+			throws Exception {
 		RadioNode.isBootStrapNode = isBoostrapNode;
 
 		radioNode = this;
@@ -54,18 +58,17 @@ public class RadioNode {
 
 		InetAddress localhost = InetAddress.getByName(Radio.getMyIP());
 		if (localhost.isLoopbackAddress()) {
-			Socket s = new Socket("202.141.80.14", 80);
+			Socket s = new Socket(Configure.getSetting("CheckURL"), 80);
 			localhost = s.getLocalAddress();
 			s.close();
 		}
+
 		PastryNodeFactory factory = new SocketPastryNodeFactory(nidFactory,
 				localhost, bindport, env);
 
 		// construct a node
 		node = factory.newNode();
-		
-		
-		
+
 		nodeHandle = node.getLocalNodeHandle();
 		node.boot(bootaddress);
 
@@ -77,40 +80,51 @@ public class RadioNode {
 				node.wait(500);
 				// abort if can't join
 				if (node.joinFailed()) {
-					Radio.logger.log(Level.SEVERE,node.joinFailedReason().toString());
+					Radio.logger.log(Level.SEVERE, node.joinFailedReason()
+							.toString());
 					throw new IOException(
 							"Could not join the FreePastry ring.  Reason:"
 									+ node.joinFailedReason());
 				}
 			}
 		}
-		Radio.logger.log(Level.INFO,"Node joined ring at " +Radio.upTime);
+		Radio.logger.log(Level.INFO, "Node joined ring at " + Radio.upTime);
 		System.out.println("Finished creating new node " + node);
+		//-------- Node Joined the network------------------
+
 		bindport = getBindPort(nodeHandle);
-		Radio.logger.log(Level.CONFIG,"Node_Handle "+ nodeHandle);
+		Radio.logger.log(Level.CONFIG, "Node_Handle " + nodeHandle);
 		Radio.settxtBindPort(String.valueOf(bindport));
+		
+		// TODO Check if VLC bind port is free or not 
 		app = new RadioApp(node, bindport + 1, bindport);
+		
 		Radio.logger.log(Level.INFO, "Livenes Check is up.");
 		app.startLivenessCheck();
 		if (isBoostrapNode) {
 			if (Radio.getAudioFilepath() != "Filepath") {
 				app.setStream(Radio.getAudioFilepath());
 				Radio.setError("Bootstrapping port " + bindport);
-			} else
-			{
+			} else {
 				Radio.setError("Please choose an audio file");
 			}
 		}
-		if(!isBoostrapNode){
+		if (!isBoostrapNode) {
 			Radio.logger.log(Level.INFO, "Sendding stream request");
 			app.sendStreamRequest();
 		}
 	}
 
-	// get bind port from the node handle
-	// if pastry fails to bind with the input port it takes next available port
-	// and we were unable to find that port using API so this dirty method
-	// extracts port from node handle. you are more than welcome to change it
+	/**
+	 * Get bind port from the node handle if pastry fails to bind with the input
+	 * port it takes next available port and we were unable to find that port
+	 * using API so this dirty method extracts port from node handle. you are
+	 * more than welcome to change it
+	 * 
+	 * @param handle
+	 * @return
+	 */
+
 	private int getBindPort(NodeHandle handle) {
 		String str = handle.toString();
 		System.out.println("handle" + str);
@@ -119,11 +133,8 @@ public class RadioNode {
 		return Integer.parseInt(port);
 	}
 
-	
-
 	public static rice.p2p.commonapi.NodeHandle getLocalNodeHandle() {
 		return nodeHandle;
 	}
-	
-	
+
 }
