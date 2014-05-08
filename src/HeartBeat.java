@@ -10,12 +10,25 @@ import rice.p2p.commonapi.Message;
 @SuppressWarnings("serial")
 public class HeartBeat implements Message {
 	
+	/**
+	 * Type of the HeartBeat message
+	 * ALIVE - Parent is alive
+	 * DYING - Parent is leaving the network
+	 * @author Abhi
+	 *
+	 */
 	enum Type {
 		ALIVE, DYING
 	}
-
-	Type type;
+	/**
+	 * Type of heartbeat
+	 */
+	Type type; 
 	
+	/**
+	 * Instantiate HeartBeat
+	 * @param type Type of heartbeat
+	 */
 	public HeartBeat(Type type) {
 		this.type = type;
 	}

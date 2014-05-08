@@ -14,9 +14,9 @@ import rice.p2p.commonapi.NodeHandle;
  */
 public class Listeners {
 	/**
-	 *Vector of currently listening clients
+	 * Vector of currently listening clients
 	 */
-    
+
 	private Vector<NodeHandle> listeningClients = new Vector<>();
 	/**
 	 * Max limit on the number of listener
@@ -26,27 +26,46 @@ public class Listeners {
 	 * current number of listeners
 	 */
 	private int noOfListener = 0;
+	/**
+	 * Current instance of Listeners. To keep class singleton
+	 */
 	private static Listeners listeners = null;
+
+	/**
+	 * Lock for shared variable listeningClients
+	 */
 	private Object Lock = new Object();
 
 	public Listeners() {
 		listeners = this;
 	}
+
 	/**
 	 * Adds a new client in the client list
-	 * @param client - client to be added 
+	 * 
+	 * @param client
+	 *            - client to be added
 	 */
 	public void addClient(NodeHandle client) {
 		/**
 		 * add only when number of clients are less than max listener
 		 */
 		if (!listeningClients.contains(client) && noOfListener < MAX_LISTENER) {
+			/**
+			 * Lock used for synchronizing shared variable listeningClients
+			 */
 			synchronized (Lock) {
 				listeningClients.add(client);
 				noOfListener++;
+				/**
+				 * If all slots are used notify the bootstrap node, so that it
+				 * can remove this node's entry from free node list
+				 */
 				if (noOfListener == MAX_LISTENER) {
-					// Sending message to bootstrap to be recognized as free
-					// node
+					/**
+					 * Sending message to bootstrap to be recognized as free
+					 * node
+					 */
 					StreamUpdateMessage uMsg = new StreamUpdateMessage();
 					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FULL);
 					uMsg.setLevel(RadioApp.getRadioApp().getAncestors()
@@ -59,6 +78,9 @@ public class Listeners {
 			System.out.println("Client " + client + " added");
 			System.out.println("Current Clients " + listeningClients + " "
 					+ noOfListener);
+			/**
+			 * Refresh the GUI component for showing listening clients
+			 */
 			Radio.refrestClientList(listeningClients);
 
 		} else {
@@ -66,10 +88,12 @@ public class Listeners {
 		}
 
 	}
-	
+
 	/**
 	 * remove a client from client list
-	 * @param client - cleint to be removed
+	 * 
+	 * @param client
+	 *            - cleint to be removed
 	 */
 	public void removeClient(NodeHandle client) {
 		System.out.print("Removing " + client);
@@ -78,6 +102,10 @@ public class Listeners {
 				noOfListener--;
 				Radio.refrestClientList(listeningClients);
 				System.out.println("Client " + client + " removed");
+				/**
+				 * If a slot has become free and list was full earlier send
+				 * bootstrap node a message to add this node in free node list
+				 */
 				if (noOfListener == MAX_LISTENER - 1) {
 					// Sending message to bootstrap to be recognized as free
 					// node
@@ -94,9 +122,9 @@ public class Listeners {
 			}
 		}
 	}
+
 	/**
-	 * update client list by looking for dead cleints.
-	 * Not implemented yet.
+	 * update client list by looking for dead cleints. Not implemented yet.
 	 */
 	public void update() {
 		System.out.println("Updating client list " + listeningClients + " "
@@ -111,10 +139,12 @@ public class Listeners {
 			}
 		}
 	}
-	
+
 	/**
 	 * send heartbeat to all the clients
-	 * @param type - type of the heartbeat message.
+	 * 
+	 * @param type
+	 *            - type of the heartbeat message.
 	 */
 	public void sendHeartBeat(HeartBeat.Type type) {
 		for (int i = 0; i < noOfListener; i++) {
@@ -122,13 +152,14 @@ public class Listeners {
 			RadioApp.endpoint.route(null, heartBeat, listeningClients.get(i));
 		}
 	}
+
 	/**
 	 * @return returns number of clients listening
 	 */
 	public int getNoOfListeners() {
 		return noOfListener;
 	}
-	
+
 	/**
 	 * 
 	 * @return returns current instance of listeners
@@ -140,10 +171,12 @@ public class Listeners {
 		return listeners;
 
 	}
-	
+
 	/**
-	 *checks if handle is a cleint or not. 
-	 * @param handle - client to be checked 
+	 * checks if handle is a cleint or not.
+	 * 
+	 * @param handle
+	 *            - client to be checked
 	 * @return returns true if client is in list. otherwise false.
 	 */
 	public boolean isClient(NodeHandle handle) {

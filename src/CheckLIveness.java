@@ -27,9 +27,17 @@ public class CheckLIveness extends Thread {
 						&& RadioApp.getRadioApp().isServerAlive()) {
 					System.out.println("Server found alive");
 					RadioApp.getRadioApp().setServerAlive(false);
-				} else if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
+				}
+				/**
+				 * if ServerAlive is false i.e. if it has not received any heart
+				 * beat from parent in last seven second
+				 */
+				else if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
 						&& !RadioApp.getRadioApp().isAlreadySearching) {
 					System.out.println("Server dead");
+					/**
+					 * Set up searching parameter
+					 */
 					RadioApp.getRadioApp().setUpServerSearch();
 					try {
 						System.out.println("Looking for aleternate server");
@@ -43,7 +51,12 @@ public class CheckLIveness extends Thread {
 				}
 				/**
 				 * If vlc media player is not receiving stream, try to reconnect
-				 * with streaming server again
+				 * with streaming server again. It is helpful when a node leaves
+				 * the network and the descendent will not know about this and
+				 * they won't receive any stream then if vlc will catch this as
+				 * an error and the node then will keep trying to connect with
+				 * its parent. Once the stream starts flowing it will receive it
+				 * from its parent
 				 */
 				if (Player.mediaPlayer != null) {
 					if (Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Ended
@@ -53,13 +66,16 @@ public class CheckLIveness extends Thread {
 								RadioApp.getRadioApp().getVLCServerStream());
 					}
 				}
-				
+
 				/**
 				 * Send heartbeat message to all the client nodes.
 				 */
 				Listeners.getListener().sendHeartBeat(HeartBeat.Type.ALIVE);
 
 				try {
+					/**
+					 * Liveness check thread sleeps for 7 second
+					 */
 					Thread.sleep(7000);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -73,7 +89,7 @@ public class CheckLIveness extends Thread {
 		}
 
 	}
-	
+
 	/**
 	 * Start liveness check thread
 	 */
@@ -83,7 +99,7 @@ public class CheckLIveness extends Thread {
 			this.start();
 		}
 	}
-	
+
 	/**
 	 * Shut down liveness check.
 	 */

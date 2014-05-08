@@ -19,6 +19,9 @@ public class Ancestors {
 	 *            - NodeHandle of the node to add
 	 */
 	public void addAncetor(NodeHandle node) {
+		/**
+		 * if ancestor list is not null then add to ancestor list
+		 */
 		if (ancestorList != null) {
 			ancestorList.add(node);
 		} else {
@@ -58,10 +61,13 @@ public class Ancestors {
 
 	@SuppressWarnings("unchecked")
 	/**
-	 * initialize ancestorList with a given ancestor list
+	 * clone a given list to ancestorList
 	 * @param ancestors - list to be cloned
 	 */
 	public void initAncestors(Vector<NodeHandle> ancestors) {
+		/**
+		 * remove all the nodes already in ancestor list
+		 */
 		if (ancestorList != null)
 			ancestorList.removeAllElements();
 		ancestorList = (Vector<NodeHandle>) ancestors.clone();
@@ -80,7 +86,7 @@ public class Ancestors {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * print ancestor list
 	 */
