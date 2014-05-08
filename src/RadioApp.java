@@ -21,22 +21,24 @@ import rice.pastry.routing.RouteSet;
 
 public class RadioApp implements Application {
 
-	private static RadioApp radioApp = null; // singleton instance of RadioApp
-	protected static Endpoint endpoint = null; // Endpoint of this node in the
+	private static RadioApp radioApp = null; 	// Singleton instance of RadioApp
+	
+	protected static Endpoint endpoint = null; 	// Endpoint of this node in the
 												// network
-	public boolean hasStream = false; // flag indicating the availibilty of the
-										// stream
-	private String LocalIPAddress; // local IP address
-	private PastryNode node = null; // pastrynode instance of this node
-	private static boolean isServerAlive = false; // flag to indicate server
+
+	public boolean hasStream = false;			// Flag indicating the availability of the stream	
+	
+	private String LocalIPAddress; 				// Local IP address
+	private PastryNode node = null; 			// Pastrynode instance of this node
+	private static boolean isServerAlive = false; 	// flag to indicate server
 													// aliveness
 	private CheckLIveness livenessChecker;
 	private Listeners listeners;
 	private Object lock = new Object();
 
 	/* Streaming Server Variables */
-	private int VLCStreamingPort = 7456; // port at which VLC Server will listen
-	private static NodeHandle VLCStreamingServer; // node handle of the
+	private int VLCStreamingPort = 7456; 			// port at which VLC Server will listen
+	private static NodeHandle VLCStreamingServer; 	// node handle of the
 													// streaming server
 	@SuppressWarnings("unused")
 	private static int bindport; // port at which application is bound
@@ -66,8 +68,8 @@ public class RadioApp implements Application {
 	private int totalUserCount = 0;
 	private int currentUserCount = 0;
 
-	/*
-	 * Returns insance of RadioApp
+	/**
+	 * Returns instance of RadioApp
 	 */
 	public static RadioApp getRadioApp() {
 		if (radioApp != null) {
@@ -84,8 +86,10 @@ public class RadioApp implements Application {
 		return bootstrapNodeID;
 	}
 
-	/*
-	 * Start listening from the src and streaming simultaneously
+
+	/***
+	 * Start listening from the src and streaming simultaneously 
+	 * @param src Path to the file or a network stream
 	 */
 	public void setStream(String src) {
 		hasStream = true;
@@ -100,8 +104,8 @@ public class RadioApp implements Application {
 		return LocalIPAddress;
 	}
 
-	/*
-	 * Returns node handle of the streaming server
+	/**
+	 * @return Node handle of the streaming server
 	 */
 	public NodeHandle getStreamingServer() {
 		return VLCStreamingServer;
@@ -117,7 +121,7 @@ public class RadioApp implements Application {
 		RadioApp.endpoint = node.buildEndpoint(this, "myinstance");
 		this.node = node;
 		this.VLCStreamingPort = VLCStreamingPort;
-		this.bindport = bindPort;
+		RadioApp.bindport = bindPort;
 		// the rest of the initialization code could go here
 
 		// now we can receive messages
@@ -142,7 +146,7 @@ public class RadioApp implements Application {
 		InetAddress localhost = InetAddress.getLocalHost();
 		if (localhost.isLoopbackAddress()) {
 			Socket s;
-			s = new Socket("202.141.80.14", 80);
+			s = new Socket(Configure.getSetting("CheckURL"), 80);
 			localhost = s.getLocalAddress();
 			System.out.println(s.getLocalAddress().getHostAddress());
 			s.close();
@@ -151,7 +155,7 @@ public class RadioApp implements Application {
 
 	}
 
-	/*
+	/**
 	 * Start liveness check for the servers
 	 */
 	public void startLivenessCheck() {
@@ -258,8 +262,8 @@ public class RadioApp implements Application {
 				/*
 				 * Prepare and send ancestor list to the child
 				 */
-//				Radio.logger.log(Level.INFO, "Sending ancestor list to"
-//						+ synMsg.getHandle());
+				// Radio.logger.log(Level.INFO, "Sending ancestor list to"
+				// + synMsg.getHandle());
 				AncestorMessage ancMsg = new AncestorMessage(ancestors,
 						node.getLocalNodeHandle(), serverLatency);
 				replyMessage(synMsg, ancMsg);
@@ -282,8 +286,8 @@ public class RadioApp implements Application {
 					reply.setHandle(freeNode);
 					reply.setType(SyncMessage.Type.FREE_STREAM);
 					replyMessage(synMsg, reply);
-//					Radio.logger.log(Level.INFO, "Sending Free node "
-//							+ freeNode + " to " + synMsg.getHandle());
+					// Radio.logger.log(Level.INFO, "Sending Free node "
+					// + freeNode + " to " + synMsg.getHandle());
 				}
 				break;
 			case FREE_STREAM:
@@ -340,7 +344,8 @@ public class RadioApp implements Application {
 			HeartBeat hb = (HeartBeat) msg;
 			if (hb.type == HeartBeat.Type.ALIVE) {
 				setServerAlive(true);
-			} else if (hb.type == HeartBeat.Type.DYING && !RadioNode.isSurrogate) {
+			} else if (hb.type == HeartBeat.Type.DYING
+					&& !RadioNode.isSurrogate) {
 				Radio.logger.log(Level.INFO, "Server leaving..");
 				setUpServerSearch();
 				try {
@@ -366,7 +371,7 @@ public class RadioApp implements Application {
 				break;
 			}
 		} else if (msg instanceof AncestorMessage) {
-//			Radio.logger.log(Level.INFO, "Ancestor List Received");
+			// Radio.logger.log(Level.INFO, "Ancestor List Received");
 			AncestorMessage ancMsg = (AncestorMessage) msg;
 			ancestors.initAncestors(ancMsg.getAncestorList());
 			ancestors.printAncestors();
@@ -424,10 +429,11 @@ public class RadioApp implements Application {
 			totalUserCount++;
 			currentUserCount++;
 			Radio.setCount(totalUserCount, currentUserCount);
-			//change count value in the gui
-			
-		}  {
-			
+			// change count value in the gui
+
+		}
+		{
+
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
 			currentUserCount--;
@@ -494,7 +500,8 @@ public class RadioApp implements Application {
 
 	private boolean validateCandidateServer(NodeHandle node) {
 		/*
-		 * Conditions to be satisfied 1. should not be same as the node itself
+		 * Conditions to be satisfied 
+		 * 1. should not be same as the node itself
 		 * 2. Should not be one of the receiving clients
 		 */
 		return (node != this.node.getLocalNodeHandle() && !listeners
@@ -612,14 +619,15 @@ public class RadioApp implements Application {
 	}
 
 	public static void sendLogs() {
-        Socket sock;
+		Socket sock;
 		try {
-			sock = new Socket("172.16.27.65", 13267);
+			sock = new Socket(Configure.getSetting("SendLogsIP"),
+					Integer.parseInt(Configure.getSetting("SendLogsPort")));
 			System.out.println("Connecting...");
-	        OutputStream os = sock.getOutputStream();
-	        send(os);
-	        long end = System.currentTimeMillis();
-	        sock.close();
+			OutputStream os = sock.getOutputStream();
+			send(os);
+			long end = System.currentTimeMillis();
+			sock.close();
 		} catch (UnknownHostException e) {
 			System.out.println(e.getMessage());
 		} catch (IOException e) {
@@ -627,26 +635,23 @@ public class RadioApp implements Application {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-        
-		
+
 	}
-	
-	public static  void send(OutputStream os) throws Exception {
-        // sendfile
-		
-        File myFile = new File("logger"+bindport+".xml");
-        System.out.println(myFile.getAbsolutePath());
-        if(myFile.exists()){
-        byte[] mybytearray = new byte[(int) myFile.length() + 1];
-        FileInputStream fis = new FileInputStream(myFile);
-        BufferedInputStream bis = new BufferedInputStream(fis);
-        bis.read(mybytearray, 0, mybytearray.length);
-        System.out.println("Sending...");
-        os.write(mybytearray, 0, mybytearray.length);
-        os.flush();
-        }else{
-        	System.out.println("Not exists");
-        }
-    }
-	
+
+	public static void send(OutputStream os) throws Exception {
+		File myFile = new File("logger" + bindport + ".xml");
+		System.out.println(myFile.getAbsolutePath());
+		if (myFile.exists()) {
+			byte[] mybytearray = new byte[(int) myFile.length() + 1];
+			FileInputStream fis = new FileInputStream(myFile);
+			BufferedInputStream bis = new BufferedInputStream(fis);
+			bis.read(mybytearray, 0, mybytearray.length);
+			System.out.println("Sending...");
+			os.write(mybytearray, 0, mybytearray.length);
+			os.flush();
+		} else {
+			System.out.println("Not exists");
+		}
+	}
+
 }

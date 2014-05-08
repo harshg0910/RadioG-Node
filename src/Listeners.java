@@ -1,3 +1,4 @@
+import java.util.Properties;
 import java.util.Vector;
 
 import rice.p2p.commonapi.NodeHandle;
@@ -15,11 +16,12 @@ public class Listeners {
 	/**
 	 *Vector of currently listening clients
 	 */
+    
 	private Vector<NodeHandle> listeningClients = new Vector<>();
 	/**
 	 * Max limit on the number of listener
 	 */
-	public static final int MAX_LISTENER = 3;
+	public static final int MAX_LISTENER = Configure.MAX_LISTENERS;
 	/**
 	 * current number of listeners
 	 */
