@@ -128,9 +128,7 @@ public class Radio {
 
 		final JRadioButton rdbtnBootstrapNode = new JRadioButton(
 				"Bootstrap Node");
-		rdbtnBootstrapNode.setEnabled(false);
 		final JRadioButton rdbtnIssurrogate = new JRadioButton("isSurrogate");
-		rdbtnIssurrogate.setEnabled(false);
 
 		// Finding bootstrap node from url
 
@@ -342,13 +340,11 @@ public class Radio {
 		lblError.setBackground(Color.RED);
 		lblError.setBounds(11, 306, 432, 47);
 		frmRadiog.getContentPane().add(lblError);
-		lblAudioPath.setEnabled(false);
 
 		lblAudioPath.setBounds(243, 48, 218, 20);
 		frmRadiog.getContentPane().add(lblAudioPath);
 
 		JButton btnNewButton = new JButton("Chose Audio File");
-		btnNewButton.setEnabled(false);
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				JFileChooser folder = new JFileChooser();
@@ -411,7 +407,6 @@ public class Radio {
 		frmRadiog.getContentPane().add(curUserCnt);
 
 		JButton btnStream = new JButton("Stream");
-		btnStream.setEnabled(false);
 		btnStream.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				RadioApp.getRadioApp().setStream(getAudioFilepath());

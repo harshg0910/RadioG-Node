@@ -2,6 +2,14 @@ import java.util.logging.Level;
 
 import uk.co.caprica.vlcj.binding.internal.libvlc_state_t;
 
+/**
+ * This class implements liveness checking functions a separated thread is
+ * executed to send keep alive messages at regular interval. If streaming server
+ * is found dead it will look for an alternate server.
+ * 
+ * @author Abhi
+ * 
+ */
 public class CheckLIveness extends Thread {
 	private boolean running = false;
 
@@ -9,9 +17,11 @@ public class CheckLIveness extends Thread {
 		System.out.println("Liveness check is up...");
 		try {
 			while (running) {
-				// if(!RadioNode.isBootStrapeNode &&
-				// !RadioApp.getRadioApp().checkServerLiveness() &&
-				// !RadioApp.getRadioApp().isAlreadySearching){
+				/**
+				 * Conditions to enter: 1. Node should not be bootstrap node and
+				 * surrogate node 2. It should not be already searching for
+				 * server 3. Current streaming server should dead
+				 */
 				if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
 						&& !RadioApp.getRadioApp().isAlreadySearching
 						&& RadioApp.getRadioApp().isServerAlive()) {
@@ -31,6 +41,10 @@ public class CheckLIveness extends Thread {
 					}
 
 				}
+				/**
+				 * If vlc media player is not receiving stream, try to reconnect
+				 * with streaming server again
+				 */
 				if (Player.mediaPlayer != null) {
 					if (Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Ended
 							|| Player.mediaPlayer.getMediaState() == libvlc_state_t.libvlc_Error) {
@@ -39,26 +53,10 @@ public class CheckLIveness extends Thread {
 								RadioApp.getRadioApp().getVLCServerStream());
 					}
 				}
-				// Listeners.getListener().update();
-				// System.out.println("---------Routing Table---------------");
-				// for (int i = 0; i <
-				// RadioNode.node.getRoutingTable().numRows(); i++) {
-				// RouteSet rs[] = RadioNode.node.getRoutingTable().getRow(i);
-				// System.out.println("---------Row "+ i +"---------------");
-				// if (rs.length != 0) {
-				// for (RouteSet r : rs) {
-				// System.out.print("Next Entry ");
-				// if (r != null)
-				// System.out.print(r.toString());
-				// System.out.println("");
-				// }
-				// }
-				// }
-				// System.out.println("---------Leaf Nodes---------------");
-				// for(NodeHandle nh : RadioNode.node.getLeafSet()){
-				// System.out.println(nh.toString());
-				// }
-
+				
+				/**
+				 * Send heartbeat message to all the client nodes.
+				 */
 				Listeners.getListener().sendHeartBeat(HeartBeat.Type.ALIVE);
 
 				try {
@@ -75,14 +73,20 @@ public class CheckLIveness extends Thread {
 		}
 
 	}
-
+	
+	/**
+	 * Start liveness check thread
+	 */
 	public void startLivenessCheck() {
 		if (!running) {
 			running = true;
 			this.start();
 		}
 	}
-
+	
+	/**
+	 * Shut down liveness check.
+	 */
 	public void shutdown() {
 		running = false;
 	}

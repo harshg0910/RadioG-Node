@@ -2,18 +2,42 @@ import java.util.Vector;
 
 import rice.p2p.commonapi.NodeHandle;
 
+/**
+ * Implements all the listening clients of a node. Max Limit on the number of
+ * clients is 3. It can be reset as per requirement. Here insertion and deletion
+ * in the list needed to be synchronized as they are shared among main thread
+ * and liveness check thread.
+ * 
+ * @author Abhi
+ * 
+ */
 public class Listeners {
+	/**
+	 *Vector of currently listening clients
+	 */
 	private Vector<NodeHandle> listeningClients = new Vector<>();
+	/**
+	 * Max limit on the number of listener
+	 */
 	public static final int MAX_LISTENER = 3;
+	/**
+	 * current number of listeners
+	 */
 	private int noOfListener = 0;
 	private static Listeners listeners = null;
 	private Object Lock = new Object();
-	
-	public Listeners(){
+
+	public Listeners() {
 		listeners = this;
 	}
+	/**
+	 * Adds a new client in the client list
+	 * @param client - client to be added 
+	 */
 	public void addClient(NodeHandle client) {
-
+		/**
+		 * add only when number of clients are less than max listener
+		 */
 		if (!listeningClients.contains(client) && noOfListener < MAX_LISTENER) {
 			synchronized (Lock) {
 				listeningClients.add(client);
@@ -40,7 +64,11 @@ public class Listeners {
 		}
 
 	}
-
+	
+	/**
+	 * remove a client from client list
+	 * @param client - cleint to be removed
+	 */
 	public void removeClient(NodeHandle client) {
 		System.out.print("Removing " + client);
 		synchronized (Lock) {
@@ -64,52 +92,72 @@ public class Listeners {
 			}
 		}
 	}
-	
-	public void update(){
-		System.out.println("Updating client list "+listeningClients + " "+noOfListener);
-		for(int i = 0; i < noOfListener; i++) {
-			/*removing dead clients*/
+	/**
+	 * update client list by looking for dead cleints.
+	 * Not implemented yet.
+	 */
+	public void update() {
+		System.out.println("Updating client list " + listeningClients + " "
+				+ noOfListener);
+		for (int i = 0; i < noOfListener; i++) {
+			/* removing dead clients */
 			NodeHandle client = listeningClients.get(i);
-			System.out.println("Checking for "+client);
-			if(!RadioApp.endpoint.isAlive(client)) {
-				System.out.println("Client: "+client + " is dead");
+			System.out.println("Checking for " + client);
+			if (!RadioApp.endpoint.isAlive(client)) {
+				System.out.println("Client: " + client + " is dead");
 				removeClient(client);
 			}
 		}
 	}
 	
-	public void sendHeartBeat(HeartBeat.Type type){
-		for(int i = 0; i < noOfListener; i++) {
+	/**
+	 * send heartbeat to all the clients
+	 * @param type - type of the heartbeat message.
+	 */
+	public void sendHeartBeat(HeartBeat.Type type) {
+		for (int i = 0; i < noOfListener; i++) {
 			HeartBeat heartBeat = new HeartBeat(type);
-			RadioApp.endpoint.route(null, heartBeat,
-					listeningClients.get(i));
+			RadioApp.endpoint.route(null, heartBeat, listeningClients.get(i));
 		}
 	}
-	public int getNoOfListeners(){
+	/**
+	 * @return returns number of clients listening
+	 */
+	public int getNoOfListeners() {
 		return noOfListener;
 	}
 	
-	public static Listeners getListener(){
-		if(listeners == null){
+	/**
+	 * 
+	 * @return returns current instance of listeners
+	 */
+	public static Listeners getListener() {
+		if (listeners == null) {
 			listeners = new Listeners();
 		}
 		return listeners;
-		
+
 	}
 	
-	public boolean isClient(NodeHandle handle){
+	/**
+	 *checks if handle is a cleint or not. 
+	 * @param handle - client to be checked 
+	 * @return returns true if client is in list. otherwise false.
+	 */
+	public boolean isClient(NodeHandle handle) {
 		return listeningClients.contains(handle);
 	}
-	
-	public Vector<NodeHandle> getListeningClients(){
+
+	public Vector<NodeHandle> getListeningClients() {
 		return listeningClients;
 	}
+
 	public void broadCastAncestor(Ancestors ancestors, NodeHandle handle) {
-		if(listeningClients.size() > 0){
+		if (listeningClients.size() > 0) {
 			AncestorMessage ancMsg = new AncestorMessage(ancestors, handle, 0);
-			for(NodeHandle client : listeningClients){
+			for (NodeHandle client : listeningClients) {
 				RadioApp.getRadioApp();
-				RadioApp.endpoint.route(null,ancMsg,client);
+				RadioApp.endpoint.route(null, ancMsg, client);
 			}
 		}
 	}
