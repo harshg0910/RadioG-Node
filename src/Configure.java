@@ -1,3 +1,4 @@
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -12,8 +13,9 @@ public class Configure {
 
     static {
         try {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            properties.load(loader.getResourceAsStream("config.properties"));      
+            
+            properties.load(new FileInputStream("config.properties"));    
+            
             MAX_LISTENERS = Integer.parseInt(getSetting("Slots"));
             if ( MAX_LISTENERS < 4)
             	MAX_LISTENERS = 3;
