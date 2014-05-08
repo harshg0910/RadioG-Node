@@ -1,0 +1,214 @@
+<ol>
+<li> First to execute the code run the file Radio.java from eclipse.</li>
+<li> The control first comes to file Radio.java which initializes the GUI.</li>
+<li> When user clicks on the button Start control goes to event handler <i>actionPerformed(ActionEvent arg0)</i>.</li>
+<li> Where first logging is enabled.</li>
+<li> After this an instance of Pastry node is created by the code <i>new RadioNode(bindPort, address, env, isBoostrapNode,isSurrogate);</i></li>
+<li> The control goes to RadioNode.java </li>
+<li> Here RadioNode is created and it joins the Pastry network.</li>
+	<code>
+		this.env = env;
+		....
+		....
+		synchronized (node) {
+			while (!node.isReady() && !node.joinFailed()) {
+				// delay so we don't busy-wait
+				node.wait(500);
+				// abort if can't join
+				if (node.joinFailed()) {
+					Radio.logger.log(Level.SEVERE,node.joinFailedReason().toString());
+					throw new IOException(
+							"Could not join the FreePastry ring.  Reason:"
+									+ node.joinFailedReason());
+				}
+			}
+		}
+	</code></li>
+<li>Once the node is created it has joined the Pastry network. An application instance is created and it is integrated with RadioNode. </br>
+	<code>app = new RadioApp(node, bindport + 1, bindport);</code>
+</li>
+<li>
+	In the function <i>RadioApp</i> the variables are initialized and liveness check is also started. </br>
+	<code>livenessChecker = new CheckLIveness();</code>
+</li>
+<li>
+	Then the control comes back to <i>RadioNode</i> function. If this node is BootStrap node it starts streaming with the url provided in the config file otherwise start searching for an streaming node.</br>
+	<code>
+	if (isBoostrapNode) {
+		if (Radio.getAudioFilepath() != "Filepath") {
+		......
+	}
+	if(!isBoostrapNode){
+		app.sendStreamRequest();
+	}
+	</code>
+</li>
+<li>
+	If the node is bootstrap node it starts streaming and waits for the nodes to join the network. 
+</li>
+<li>
+	If the node is a client node:- the control goes to the function <i>sendStreamRequest</i> where it searches for a candidate parent node. This job is done by function <i>getCandidateServer</i>. It does this by using the last three rows of the routiung table which shares the longest prefix match of the node id of the node. Each node maintains a variable <i>rowOffset</i> which keeps the current row track and <i>lastCheckedServer</i> which keeps count of the last node checked in the rowOffset-th row. </br>
+	<code>
+	public NodeHandle getCandiadteServer() {
+		try { </br>
+			NodeHandle candidateServer = null;</br>
+			if (rowOffset >= MAX_ROW_OFFSET) {</br>
+				return null;</br>
+			}</br>
+			RouteSet row[] = node.getRoutingTable().getRow(
+					node.getRoutingTable().numRows() - rowOffset - 1);</br>
+			.............
+	}
+
+	</code>
+</li>
+<li>
+	The function <i>getCandidateServer</i> returns null if all the three rows are exaushted and the node does not received a streaming parent. Then thr request is sent to BootStrap node, which maintains a list of nodes with at least one free slot. 
+	if (candidateServer != null) {
+				if (validateCandidateServer(candidateServer)) {</br>
+					msg.setType(SyncMessage.Type.STREAM_REQUEST);</br>
+					.......
+				} else {
+					isAlreadySearching = false;</br>
+					sendStreamRequest();</br>
+				}
+			} else {</br>
+				SyncMessage msg = new SyncMessage();</br>
+				msg.setType(SyncMessage.Type.SEND_STREAM);
+				.......</br>
+			}
+
+</li>
+
+<li>
+To send request to a node SEND_REQUEST messages are sent. Once a node receives this message which is captured by <i>deliver()</i> function. This node checks whether it has a stream or not, it has at least one free slot and the it should not be one of the ancestor then it sends a STREAM_OFFER to the sender. Otherwise sends a STREAM_REJECT message.
+<code>
+	case STREAM_REQUEST:
+				Radio.logger.log(Level.INFO,"Stream_Request from " + synMsg.getHandle()); </br>
+				if (hasStream && listeners.getNoOfListeners() < Listeners.MAX_LISTENER && !ancestors.isAncestor(synMsg.getHandle())) {</br>
+						.....
+				} else {</br>
+						....
+				}
+
+</code>
+</li>
+<li>
+Once the sender of the STREAM_OFFER receives an STREAM_OFFER message it creates a streaming server and starts listening from the received stream. Also it sends an STREAM_ACCEPT message to the sender. Then it resets the <i> rowOffset </i> and <i>lastCheckedServer</i>. Also it notifies the bootstrap node that it has free slots so that bootstrap node can add it to its free node list.
+<pre>
+	<code>
+		case STREAM_OFFER:
+				if (!ServerFound) {
+
+					VLCServerStream = "mmsh://" + synMsg.getIP() + ":"
+							+ synMsg.getVLCPort(); // prepare streaming url
+					VLCStreamingServer = synMsg.getHandle();
+					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle()
+							.toString());
+					.............
+				}
+
+	</code>
+</pre>
+</li>
+<li>
+	On receiving STREAM_ACCEPT message from a node, this node adds the sender to its <i>listeningClients</i> list. 	
+	<pre>
+		<code>
+			case STREAM_ACCEPT:
+				listeners.addClient(synMsg.getHandle());
+				.......
+				AncestorMessage ancMsg = new AncestorMessage(ancestors,
+						node.getLocalNodeHandle(), serverLatency);
+				replyMessage(synMsg, ancMsg);
+				break;
+
+		</code>
+	</pre>
+	
+	The <i>addClient()</i> function adds the sender to the list and then checks if all slots for listeners are used it sends a message to bootstrap node for asking it to remove this node from free node list. 	
+	<pre>
+		<code>
+		public void addClient(NodeHandle client) {
+		/**
+		 * add only when number of clients are less than max listener
+		 */
+		if (!listeningClients.contains(client) && noOfListener < MAX_LISTENER) {
+			/**
+			 * Lock used for synchronizing shared variable listeningClients
+			 */
+			synchronized (Lock) {
+				listeningClients.add(client);
+				noOfListener++;
+				.
+				.
+				
+				if (noOfListener == MAX_LISTENER) {
+					StreamUpdateMessage uMsg = new StreamUpdateMessage();
+					uMsg.setInfo(StreamUpdateMessage.Type.STREAM_FULL);
+					..
+					..		
+				}
+			}
+		}
+
+		</code>
+	</pre>
+	Also the node sends AncestorMessage to the sender with a list of its ancetors in it. </br>
+	<code>AncestorMessage ancMsg = new AncestorMessage(ancestors,
+						node.getLocalNodeHandle(), serverLatency);</code>
+						
+	On receiving this message the client clones this list to its <i>ancestorList</i>.
+</li>
+<li>
+	On STREAM_REJECT the node sends stream request to some other node via the function in the same way as described above. 
+</li>
+<li>
+	So, far a node has started listening, and is ready to send stream to other nodes.
+</li>
+<li>
+	Now the liveness check is performed at every seven seconds at CheckLIveness.java file and it first it checks if the parent is alive or not by  checking the variable <i>ServerAlive</i> which is set to true each time a ALIVE heartbeat message is received. Now if ServerAlive is true then it sets it to false and continues, otherwise if it false this means the node has not received a alive message from its parent in last seven seconds, the node then will look for an alternative streaming parent.
+	<pre>
+		<code>
+			if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
+						&& !RadioApp.getRadioApp().isAlreadySearching
+						&& RadioApp.getRadioApp().isServerAlive()) {
+					..
+					RadioApp.getRadioApp().setServerAlive(false);
+			}
+			else if (!RadioNode.isBootStrapNode && !RadioNode.isSurrogate
+				&& !RadioApp.getRadioApp().isAlreadySearching) {
+				....
+				...
+			}
+		</code>
+	</pre>
+	Also then it sends a ALIVE heartbeat to all the childrens. Then it goes to sleep for seven seconds. 
+</li>
+<li>
+	When a node leaves voluantarily it sends a DYING message to its children so that they can look for a new parent. Also it sends a CLIENT_DYING message to parent so that the parent can remove this node from it's lit and a NODE_DYING message to bootstrap node so that bootstrap can remove this node from free node list.
+	This voluatrily leaving part is handled by function <i>close_connection()</i> in <i>RadioApp.java</i>.
+	<pre>
+		<code>
+		public static void close_connection() {
+			if (endpoint != null) {
+				// tell children i am dying
+				Radio.logger.log(Level.INFO, "Telling clients i am dying");
+				Listeners.getListener().sendHeartBeat(HeartBeat.Type.DYING);
+				// tell server i am dying
+				Radio.logger.log(Level.INFO, "Telling server i am dying");
+				SyncMessage CDmsg = new SyncMessage();
+				CDmsg.setType(SyncMessage.Type.CLIENT_DYING);
+				CDmsg.setHandle(endpoint.getLocalNodeHandle());
+				.....
+				.....
+			}
+		}
+		</code>
+	</pre>
+</li>
+
+<li>
+	When a node departs invoulantarily it will be discovered by it's children using HeartBeat mechanism, also it will detected by Pastry system after some time which then will be handled in the same way described above in the function <i>update()</i>
+</li>
+</p>

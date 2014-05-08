@@ -85,12 +85,12 @@ public class RadioApp implements Application {
 	 * Clock hand for the last checked server
 	 */
 	private int lastCheckedServer = 0;
-	
+
 	/**
-	 * Current row of the routing table 
+	 * Current row of the routing table
 	 */
 	private int rowOffset = 0;
-	
+
 	/**
 	 * Maximum number of rows to be checked
 	 */
@@ -116,7 +116,6 @@ public class RadioApp implements Application {
 	 */
 	private static Ancestors ancestors;
 
-	
 	private long serverLatency = 0; // server's latency
 	private long PingTime = 0;
 	private long PongTime = 0;
@@ -227,8 +226,8 @@ public class RadioApp implements Application {
 		}
 
 		InetAddress localhost = InetAddress.getLocalHost();
-		
-		// This returns the IP address according to the packets received by 
+
+		// This returns the IP address according to the packets received by
 		// external URL
 		if (localhost.isLoopbackAddress()) {
 			Socket s;
@@ -297,7 +296,7 @@ public class RadioApp implements Application {
 				if (!ServerFound) {
 					// prepare streaming url
 					VLCServerStream = "mmsh://" + synMsg.getIP() + ":"
-							+ synMsg.getVLCPort(); 
+							+ synMsg.getVLCPort();
 					VLCStreamingServer = synMsg.getHandle();
 					Radio.setGetStreamLabel(((SyncMessage) msg).getHandle()
 							.toString());
@@ -348,7 +347,7 @@ public class RadioApp implements Application {
 				/*
 				 * Prepare and send ancestor list to the child
 				 */
-				
+
 				// Radio.logger.log(Level.INFO, "Sending ancestor list to"
 				// + synMsg.getHandle());
 				AncestorMessage ancMsg = new AncestorMessage(ancestors,
@@ -514,7 +513,11 @@ public class RadioApp implements Application {
 		endpoint.route(to, reply, null);
 	}
 
-	@Override
+	/**
+	 * This function is called when a node leaves or joins the node.
+	 * 
+	 * @Override
+	 */
 	public void update(NodeHandle handle, boolean joined) {
 		if (joined) {
 			Radio.logger.log(Level.INFO, "Node Joined " + handle);
@@ -524,8 +527,7 @@ public class RadioApp implements Application {
 			Radio.setCount(totalUserCount, currentUserCount);
 			// change count value in the gui
 
-		}
-		else{
+		} else {
 
 			Radio.logger.log(Level.INFO, "Node Left " + handle);
 			System.out.println("Node Left " + handle);
@@ -533,7 +535,10 @@ public class RadioApp implements Application {
 			// Bootstrap node will maintain the details of all nodes
 			if (RadioNode.isBootStrapNode)
 				freeStreamers.removeNode(handle);
-
+			/**
+			 * If the node left is parent of this node then look for a new
+			 * parent.
+			 */
 			if (handle == VLCStreamingServer) {
 				hasStream = false;
 				Player.stopServer();
@@ -541,12 +546,19 @@ public class RadioApp implements Application {
 				Radio.logger.log(Level.INFO, "Streaming Server Dead " + handle);
 				System.out.println("Steaming Server Left");
 				try {
+					/**
+					 * Set up server seraching options
+					 */
 					setUpServerSearch();
 					sendStreamRequest();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-			} else if (listeners.isClient(handle)) {
+			}
+			/**
+			 * if the node left is one of the client
+			 */
+			else if (listeners.isClient(handle)) {
 				Radio.logger.log(Level.INFO, "Client left " + handle);
 				listeners.removeClient(handle);
 			}
@@ -555,8 +567,8 @@ public class RadioApp implements Application {
 
 	/**
 	 * Sends stream request to a candidate node First explores all the node in
-	 * last 3 rows of routing table, if could not find any stream offer then
-	 * requests bootstrap server for a free node
+	 * last MAX_NUM_ROWS rows of routing table, if could not find any stream
+	 * offer then requests bootstrap server for a free node.
 	 * 
 	 * @throws Exception
 	 */
@@ -567,6 +579,10 @@ public class RadioApp implements Application {
 
 			NodeHandle candidateServer = getCandiadteServer();
 
+			/**
+			 * candidateServer is null then it means the routing table is
+			 * exaushted now ask bootstrap node for free node
+			 */
 			if (candidateServer != null) {
 				if (validateCandidateServer(candidateServer)) {
 					SyncMessage msg = new SyncMessage();
@@ -585,7 +601,7 @@ public class RadioApp implements Application {
 			} else {
 				// We didn't get the stream using raouting table
 				// Asking bootstrap for free node
-				
+
 				SyncMessage msg = new SyncMessage();
 				msg.setType(SyncMessage.Type.SEND_FREE_NODE_INFO);
 				msg.setHandle(endpoint.getLocalNodeHandle());
@@ -598,8 +614,8 @@ public class RadioApp implements Application {
 	}
 
 	/**
-	 * Conditions to be satisfied 1. should not be same as the node itself
-	 * 2. Should not be one of the receiving clients
+	 * Conditions to be satisfied 1. should not be same as the node itself 2.
+	 * Should not be one of the receiving clients
 	 */
 	private boolean validateCandidateServer(NodeHandle node) {
 		return (node != this.node.getLocalNodeHandle() && !listeners
@@ -607,21 +623,21 @@ public class RadioApp implements Application {
 	}
 
 	/**
-	 * Iterate last MAX_ROW_OFFSET  of routing table to get a candidate parent
+	 * Iterate last MAX_ROW_OFFSET of routing table to get a candidate parent
 	 * 
 	 * @return NodeHandle of the candidate node
 	 */
 	public NodeHandle getCandiadteServer() {
 		try {
 			NodeHandle candidateServer = null;
-			
+
 			if (rowOffset >= MAX_ROW_OFFSET) {
 				// Searched through routng table
 				return null;
 			}
 			RouteSet row[] = node.getRoutingTable().getRow(
 					node.getRoutingTable().numRows() - rowOffset - 1);
-			
+
 			if (lastCheckedServer < row.length) {
 				System.out.println(lastCheckedServer + " " + row.length);
 				RouteSet entry = row[lastCheckedServer];
@@ -653,7 +669,12 @@ public class RadioApp implements Application {
 			return null;
 		}
 	}
-
+	
+	/**
+	 * Send message to node with nodeID = id
+	 * @param id - Destination nodeID
+	 * @param msg - message to send
+	 */
 	public void sendMessage(Id id, Message msg) {
 		endpoint.route(id, msg, null);
 	}
@@ -665,7 +686,11 @@ public class RadioApp implements Application {
 	public boolean isServerAlive() {
 		return isServerAlive;
 	}
-
+	
+	/**
+	 * Set ServerAlive to val
+	 * @param val value to set
+	 */
 	public void setServerAlive(boolean val) {
 		synchronized (lock) {
 			isServerAlive = val;
@@ -756,7 +781,9 @@ public class RadioApp implements Application {
 
 	/**
 	 * Used by sendLogs as a helper function
-	 * @param os - Output Stream
+	 * 
+	 * @param os
+	 *            - Output Stream
 	 * @throws Exception
 	 */
 	public static void send(OutputStream os) throws Exception {
