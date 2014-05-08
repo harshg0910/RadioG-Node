@@ -2,13 +2,19 @@ import rice.p2p.commonapi.Id;
 import rice.p2p.commonapi.Message;
 import rice.p2p.commonapi.NodeHandle;
 
-
+/**
+ * Control Messages Implementations
+ * @author Abhi
+ *
+ */
 public class SyncMessage implements Message{
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
-
+	
+	/**
+	 * type of the message
+	 * @author Abhi
+	 *
+	 */
 	public static enum Type{
 		STREAM_REQUEST,
 		STREAM_OFFER,
@@ -18,6 +24,7 @@ public class SyncMessage implements Message{
 		FREE_STREAM , // This will contain the nodehandle of the free stream
 		CLIENT_DYING
 	}
+	
 	
 	private Type type;
 	private String IPAddress;

@@ -33,7 +33,15 @@ public class RadioNode {
 		}
 		return null;
 	}
-
+	/**
+	 * Starts a pastry node and binds it to the application
+	 * @param bindport - Application bind port
+	 * @param bootaddress - Bootstrap node's address
+	 * @param env - refer Pastry Enviornment
+	 * @param isBoostrapNode  
+	 * @param isSurrogate
+	 * @throws Exception
+	 */
 	public RadioNode(int bindport, InetSocketAddress bootaddress,
 			Environment env, boolean isBoostrapNode, boolean isSurrogate) throws Exception {
 		RadioNode.isBootStrapNode = isBoostrapNode;
@@ -78,7 +86,6 @@ public class RadioNode {
 		}
 		Radio.logger.log(Level.INFO,"Node joined ring at " +Radio.upTime);
 		System.out.println("Finished creating new node " + node);
-		updateLeafSet();
 		bindport = getBindPort(nodeHandle);
 		Radio.logger.log(Level.CONFIG,"Node_Handle "+ nodeHandle);
 		Radio.settxtBindPort(String.valueOf(bindport));
@@ -112,9 +119,7 @@ public class RadioNode {
 		return Integer.parseInt(port);
 	}
 
-	public void updateLeafSet() {
-		leafSet = node.getLeafSet();
-	}
+	
 
 	public static rice.p2p.commonapi.NodeHandle getLocalNodeHandle() {
 		return nodeHandle;

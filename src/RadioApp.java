@@ -21,24 +21,25 @@ import rice.pastry.routing.RouteSet;
 
 public class RadioApp implements Application {
 
-	private static RadioApp radioApp = null; 	// Singleton instance of RadioApp
-	
-	protected static Endpoint endpoint = null; 	// Endpoint of this node in the
+	private static RadioApp radioApp = null; // Singleton instance of RadioApp
+
+	protected static Endpoint endpoint = null; // Endpoint of this node in the
 												// network
 
-	public boolean hasStream = false;			// Flag indicating the availability of the stream	
-	
-	private String LocalIPAddress; 				// Local IP address
-	private PastryNode node = null; 			// Pastrynode instance of this node
-	private static boolean isServerAlive = false; 	// flag to indicate server
+	public boolean hasStream = false; // Flag indicating the availability of the
+										// stream
+
+	private String LocalIPAddress; // Local IP address
+	private PastryNode node = null; // Pastrynode instance of this node
+	private static boolean isServerAlive = false; // flag to indicate server
 													// aliveness
 	private CheckLIveness livenessChecker;
 	private Listeners listeners;
 	private Object lock = new Object();
 
 	/* Streaming Server Variables */
-	private int VLCStreamingPort = 7456; 			// port at which VLC Server will listen
-	private static NodeHandle VLCStreamingServer; 	// node handle of the
+	private int VLCStreamingPort = 7456; // port at which VLC Server will listen
+	private static NodeHandle VLCStreamingServer; // node handle of the
 													// streaming server
 	@SuppressWarnings("unused")
 	private static int bindport; // port at which application is bound
@@ -63,7 +64,7 @@ public class RadioApp implements Application {
 	private long PongTime = 0;
 
 	private static Id bootstrapNodeID = null;
-	private short attempt = 0;
+	private short attempt = 0; // to get attempt-th free node from bootstrap
 
 	private int totalUserCount = 0;
 	private int currentUserCount = 0;
@@ -86,10 +87,11 @@ public class RadioApp implements Application {
 		return bootstrapNodeID;
 	}
 
-
 	/***
-	 * Start listening from the src and streaming simultaneously 
-	 * @param src Path to the file or a network stream
+	 * Start listening from the src and streaming simultaneously
+	 * 
+	 * @param src
+	 *            Path to the file or a network stream
 	 */
 	public void setStream(String src) {
 		hasStream = true;
@@ -111,6 +113,16 @@ public class RadioApp implements Application {
 		return VLCStreamingServer;
 	}
 
+	/**
+	 * Intialize radio application instance
+	 * 
+	 * @param node
+	 *            - Instance of the local pastry node
+	 * @param VLCStreamingPort
+	 * @param bindPort
+	 *            - Port at which application binds
+	 * @throws IOException
+	 */
 	public RadioApp(PastryNode node, int VLCStreamingPort, int bindPort)
 			throws IOException {
 
@@ -279,6 +291,9 @@ public class RadioApp implements Application {
 					e.printStackTrace();
 				}
 			case SEND_STREAM:
+				/*
+				 * send free node to requester
+				 */
 				if (RadioNode.isBootStrapNode) {
 					NodeHandle freeNode = freeStreamers.getFreeStreamer(synMsg
 							.getAttempt());
@@ -311,6 +326,9 @@ public class RadioApp implements Application {
 					}
 
 				} else if (validateCandidateServer(synMsg.getHandle())) {
+					/*
+					 * send STREAM_REQUEST to the received candidate parent
+					 */
 					SyncMessage msgRequest = new SyncMessage();
 					msgRequest.setIP(getLocalIP());
 					msgRequest.setType(SyncMessage.Type.STREAM_REQUEST);
@@ -447,7 +465,6 @@ public class RadioApp implements Application {
 				Player.stopListening();
 				Radio.logger.log(Level.INFO, "Streaming Server Dead " + handle);
 				System.out.println("Steaming Server Left");
-				RadioNode.getRadioNode().updateLeafSet();
 				try {
 					setUpServerSearch();
 					sendStreamRequest();
@@ -461,8 +478,13 @@ public class RadioApp implements Application {
 		}
 	}
 
-	// Do call updateLeafSet before this function
-	// also Make serverfound = false
+	/**
+	 * Sends stream request to a candidate node First explores all the node in
+	 * last 3 rows of routing table, if could not find any stream offer then
+	 * requests bootstrap server for a free node
+	 * 
+	 * @throws Exception
+	 */
 	public void sendStreamRequest() throws Exception {
 
 		if (!RadioNode.isBootStrapNode && !ServerFound && !isAlreadySearching) {
@@ -500,14 +522,18 @@ public class RadioApp implements Application {
 
 	private boolean validateCandidateServer(NodeHandle node) {
 		/*
-		 * Conditions to be satisfied 
-		 * 1. should not be same as the node itself
+		 * Conditions to be satisfied 1. should not be same as the node itself
 		 * 2. Should not be one of the receiving clients
 		 */
 		return (node != this.node.getLocalNodeHandle() && !listeners
 				.getListeningClients().contains(node));
 	}
 
+	/**
+	 * iterate last 3 rows of routing table to get a candidate parent
+	 * 
+	 * @return
+	 */
 	public NodeHandle getCandiadteServer() {
 		try {
 			NodeHandle candidateServer = null;
@@ -580,6 +606,9 @@ public class RadioApp implements Application {
 		return VLCServerStream;
 	}
 
+	/**
+	 * Pre connection close tasks
+	 */
 	public static void close_connection() {
 		if (endpoint != null) {
 			// tell children i am dying
@@ -609,6 +638,9 @@ public class RadioApp implements Application {
 		sendLogs();
 	}
 
+	/**
+	 * Called before searching for a streaming server
+	 */
 	public void setUpServerSearch() {
 		hasStream = false;
 		ServerFound = false;
@@ -618,6 +650,10 @@ public class RadioApp implements Application {
 		Player.stopListening();
 	}
 
+	/**
+	 * sends the log files to the server at the address and port configured in
+	 * config.param
+	 */
 	public static void sendLogs() {
 		Socket sock;
 		try {
@@ -637,7 +673,7 @@ public class RadioApp implements Application {
 		}
 
 	}
-
+	
 	public static void send(OutputStream os) throws Exception {
 		File myFile = new File("logger" + bindport + ".xml");
 		System.out.println(myFile.getAbsolutePath());
